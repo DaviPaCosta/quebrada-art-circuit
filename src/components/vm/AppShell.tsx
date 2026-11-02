@@ -46,6 +46,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            <Link
+              to={profilePath}
+              className={cn(
+                "rounded-md px-3 py-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground",
+                path.startsWith("/u/") && "text-primary",
+              )}
+            >
+              Perfil
+            </Link>
           </nav>
           <div className="ml-auto flex items-center gap-1">
             <Link to="/explorar" aria-label="Buscar" className="rounded-full p-2 text-foreground hover:bg-muted md:hidden">
