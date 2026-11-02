@@ -10,33 +10,253 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RedeRouteImport } from './routes/_rede'
+import { Route as CadastroRouteImport } from './routes/cadastro'
+import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
+import { Route as RegrasRouteImport } from './routes/regras'
+import { Route as RedeAgendaRouteImport } from './routes/_rede.agenda'
+import { Route as RedeAjudaRouteImport } from './routes/_rede.ajuda'
+import { Route as RedeConfiguracoesRouteImport } from './routes/_rede.configuracoes'
+import { Route as RedeCulturaRouteImport } from './routes/_rede.cultura'
+import { Route as RedeEditarPerfilRouteImport } from './routes/_rede.editar-perfil'
+import { Route as RedeExplorarRouteImport } from './routes/_rede.explorar'
+import { Route as RedeFeedRouteImport } from './routes/_rede.feed'
+import { Route as RedeModeracaoRouteImport } from './routes/_rede.moderacao'
+import { Route as RedeNotificacoesRouteImport } from './routes/_rede.notificacoes'
+import { Route as RedePublicarRouteImport } from './routes/_rede.publicar'
+import { Route as RedeSalvosRouteImport } from './routes/_rede.salvos'
+import { Route as RedePostIdRouteImport } from './routes/_rede.post.$id'
+import { Route as RedeUUsernameRouteImport } from './routes/_rede.u.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedeRoute = RedeRouteImport.update({
+  id: '/_rede',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CadastroRoute = CadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntrarRoute = EntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecuperarSenhaRoute = RecuperarSenhaRouteImport.update({
+  id: '/recuperar-senha',
+  path: '/recuperar-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegrasRoute = RegrasRouteImport.update({
+  id: '/regras',
+  path: '/regras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedeAgendaRoute = RedeAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeAjudaRoute = RedeAjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeConfiguracoesRoute = RedeConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeCulturaRoute = RedeCulturaRouteImport.update({
+  id: '/cultura',
+  path: '/cultura',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeEditarPerfilRoute = RedeEditarPerfilRouteImport.update({
+  id: '/editar-perfil',
+  path: '/editar-perfil',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeExplorarRoute = RedeExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeFeedRoute = RedeFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeModeracaoRoute = RedeModeracaoRouteImport.update({
+  id: '/moderacao',
+  path: '/moderacao',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeNotificacoesRoute = RedeNotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedePublicarRoute = RedePublicarRouteImport.update({
+  id: '/publicar',
+  path: '/publicar',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeSalvosRoute = RedeSalvosRouteImport.update({
+  id: '/salvos',
+  path: '/salvos',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedePostIdRoute = RedePostIdRouteImport.update({
+  id: '/post/$id',
+  path: '/post/$id',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeUUsernameRoute = RedeUUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => RedeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cadastro': typeof CadastroRoute
+  '/entrar': typeof EntrarRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/regras': typeof RegrasRoute
+  '/agenda': typeof RedeAgendaRoute
+  '/ajuda': typeof RedeAjudaRoute
+  '/configuracoes': typeof RedeConfiguracoesRoute
+  '/cultura': typeof RedeCulturaRoute
+  '/editar-perfil': typeof RedeEditarPerfilRoute
+  '/explorar': typeof RedeExplorarRoute
+  '/feed': typeof RedeFeedRoute
+  '/moderacao': typeof RedeModeracaoRoute
+  '/notificacoes': typeof RedeNotificacoesRoute
+  '/publicar': typeof RedePublicarRoute
+  '/salvos': typeof RedeSalvosRoute
+  '/post/$id': typeof RedePostIdRoute
+  '/u/$username': typeof RedeUUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cadastro': typeof CadastroRoute
+  '/entrar': typeof EntrarRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/regras': typeof RegrasRoute
+  '/agenda': typeof RedeAgendaRoute
+  '/ajuda': typeof RedeAjudaRoute
+  '/configuracoes': typeof RedeConfiguracoesRoute
+  '/cultura': typeof RedeCulturaRoute
+  '/editar-perfil': typeof RedeEditarPerfilRoute
+  '/explorar': typeof RedeExplorarRoute
+  '/feed': typeof RedeFeedRoute
+  '/moderacao': typeof RedeModeracaoRoute
+  '/notificacoes': typeof RedeNotificacoesRoute
+  '/publicar': typeof RedePublicarRoute
+  '/salvos': typeof RedeSalvosRoute
+  '/post/$id': typeof RedePostIdRoute
+  '/u/$username': typeof RedeUUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_rede': typeof RedeRouteWithChildren
+  '/cadastro': typeof CadastroRoute
+  '/entrar': typeof EntrarRoute
+  '/recuperar-senha': typeof RecuperarSenhaRoute
+  '/regras': typeof RegrasRoute
+  '/_rede/agenda': typeof RedeAgendaRoute
+  '/_rede/ajuda': typeof RedeAjudaRoute
+  '/_rede/configuracoes': typeof RedeConfiguracoesRoute
+  '/_rede/cultura': typeof RedeCulturaRoute
+  '/_rede/editar-perfil': typeof RedeEditarPerfilRoute
+  '/_rede/explorar': typeof RedeExplorarRoute
+  '/_rede/feed': typeof RedeFeedRoute
+  '/_rede/moderacao': typeof RedeModeracaoRoute
+  '/_rede/notificacoes': typeof RedeNotificacoesRoute
+  '/_rede/publicar': typeof RedePublicarRoute
+  '/_rede/salvos': typeof RedeSalvosRoute
+  '/_rede/post/$id': typeof RedePostIdRoute
+  '/_rede/u/$username': typeof RedeUUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/cadastro'
+    | '/entrar'
+    | '/recuperar-senha'
+    | '/regras'
+    | '/agenda'
+    | '/ajuda'
+    | '/configuracoes'
+    | '/cultura'
+    | '/editar-perfil'
+    | '/explorar'
+    | '/feed'
+    | '/moderacao'
+    | '/notificacoes'
+    | '/publicar'
+    | '/salvos'
+    | '/post/$id'
+    | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/cadastro'
+    | '/entrar'
+    | '/recuperar-senha'
+    | '/regras'
+    | '/agenda'
+    | '/ajuda'
+    | '/configuracoes'
+    | '/cultura'
+    | '/editar-perfil'
+    | '/explorar'
+    | '/feed'
+    | '/moderacao'
+    | '/notificacoes'
+    | '/publicar'
+    | '/salvos'
+    | '/post/$id'
+    | '/u/$username'
+  id:
+    | '__root__'
+    | '/'
+    | '/_rede'
+    | '/cadastro'
+    | '/entrar'
+    | '/recuperar-senha'
+    | '/regras'
+    | '/_rede/agenda'
+    | '/_rede/ajuda'
+    | '/_rede/configuracoes'
+    | '/_rede/cultura'
+    | '/_rede/editar-perfil'
+    | '/_rede/explorar'
+    | '/_rede/feed'
+    | '/_rede/moderacao'
+    | '/_rede/notificacoes'
+    | '/_rede/publicar'
+    | '/_rede/salvos'
+    | '/_rede/post/$id'
+    | '/_rede/u/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RedeRoute: typeof RedeRouteWithChildren
+  CadastroRoute: typeof CadastroRoute
+  EntrarRoute: typeof EntrarRoute
+  RecuperarSenhaRoute: typeof RecuperarSenhaRoute
+  RegrasRoute: typeof RegrasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +268,176 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_rede': {
+      id: '/_rede'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof RedeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cadastro': {
+      id: '/cadastro'
+      path: '/cadastro'
+      fullPath: '/cadastro'
+      preLoaderRoute: typeof CadastroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entrar': {
+      id: '/entrar'
+      path: '/entrar'
+      fullPath: '/entrar'
+      preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recuperar-senha': {
+      id: '/recuperar-senha'
+      path: '/recuperar-senha'
+      fullPath: '/recuperar-senha'
+      preLoaderRoute: typeof RecuperarSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regras': {
+      id: '/regras'
+      path: '/regras'
+      fullPath: '/regras'
+      preLoaderRoute: typeof RegrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_rede/agenda': {
+      id: '/_rede/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof RedeAgendaRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/ajuda': {
+      id: '/_rede/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof RedeAjudaRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/configuracoes': {
+      id: '/_rede/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof RedeConfiguracoesRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/cultura': {
+      id: '/_rede/cultura'
+      path: '/cultura'
+      fullPath: '/cultura'
+      preLoaderRoute: typeof RedeCulturaRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/editar-perfil': {
+      id: '/_rede/editar-perfil'
+      path: '/editar-perfil'
+      fullPath: '/editar-perfil'
+      preLoaderRoute: typeof RedeEditarPerfilRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/explorar': {
+      id: '/_rede/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof RedeExplorarRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/feed': {
+      id: '/_rede/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof RedeFeedRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/moderacao': {
+      id: '/_rede/moderacao'
+      path: '/moderacao'
+      fullPath: '/moderacao'
+      preLoaderRoute: typeof RedeModeracaoRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/notificacoes': {
+      id: '/_rede/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof RedeNotificacoesRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/publicar': {
+      id: '/_rede/publicar'
+      path: '/publicar'
+      fullPath: '/publicar'
+      preLoaderRoute: typeof RedePublicarRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/salvos': {
+      id: '/_rede/salvos'
+      path: '/salvos'
+      fullPath: '/salvos'
+      preLoaderRoute: typeof RedeSalvosRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/post/$id': {
+      id: '/_rede/post/$id'
+      path: '/post/$id'
+      fullPath: '/post/$id'
+      preLoaderRoute: typeof RedePostIdRouteImport
+      parentRoute: typeof RedeRoute
+    }
+    '/_rede/u/$username': {
+      id: '/_rede/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof RedeUUsernameRouteImport
+      parentRoute: typeof RedeRoute
+    }
   }
 }
 
+interface RedeRouteChildren {
+  RedeAgendaRoute: typeof RedeAgendaRoute
+  RedeAjudaRoute: typeof RedeAjudaRoute
+  RedeConfiguracoesRoute: typeof RedeConfiguracoesRoute
+  RedeCulturaRoute: typeof RedeCulturaRoute
+  RedeEditarPerfilRoute: typeof RedeEditarPerfilRoute
+  RedeExplorarRoute: typeof RedeExplorarRoute
+  RedeFeedRoute: typeof RedeFeedRoute
+  RedeModeracaoRoute: typeof RedeModeracaoRoute
+  RedeNotificacoesRoute: typeof RedeNotificacoesRoute
+  RedePublicarRoute: typeof RedePublicarRoute
+  RedeSalvosRoute: typeof RedeSalvosRoute
+  RedePostIdRoute: typeof RedePostIdRoute
+  RedeUUsernameRoute: typeof RedeUUsernameRoute
+}
+
+const RedeRouteChildren: RedeRouteChildren = {
+  RedeAgendaRoute: RedeAgendaRoute,
+  RedeAjudaRoute: RedeAjudaRoute,
+  RedeConfiguracoesRoute: RedeConfiguracoesRoute,
+  RedeCulturaRoute: RedeCulturaRoute,
+  RedeEditarPerfilRoute: RedeEditarPerfilRoute,
+  RedeExplorarRoute: RedeExplorarRoute,
+  RedeFeedRoute: RedeFeedRoute,
+  RedeModeracaoRoute: RedeModeracaoRoute,
+  RedeNotificacoesRoute: RedeNotificacoesRoute,
+  RedePublicarRoute: RedePublicarRoute,
+  RedeSalvosRoute: RedeSalvosRoute,
+  RedePostIdRoute: RedePostIdRoute,
+  RedeUUsernameRoute: RedeUUsernameRoute,
+}
+
+const RedeRouteWithChildren = RedeRoute._addFileChildren(RedeRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RedeRoute: RedeRouteWithChildren,
+  CadastroRoute: CadastroRoute,
+  EntrarRoute: EntrarRoute,
+  RecuperarSenhaRoute: RecuperarSenhaRoute,
+  RegrasRoute: RegrasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
