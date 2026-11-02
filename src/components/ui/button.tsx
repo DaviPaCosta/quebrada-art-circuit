@@ -9,18 +9,24 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90 font-semibold",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+          "border border-input bg-transparent shadow-sm hover:bg-muted hover:text-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        ghost: "hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        spray:
+          "bg-primary text-primary-foreground font-display uppercase tracking-wide text-base border-2 border-charcoal shadow-[4px_4px_0_0_var(--lime)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--lime)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all",
+        lime: "bg-accent text-accent-foreground font-display uppercase tracking-wide text-base border-2 border-charcoal shadow-[4px_4px_0_0_var(--spray)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0_0_var(--spray)] transition-all",
+        sand: "bg-foreground text-background font-display uppercase tracking-wide text-base hover:bg-foreground/90",
+        follow: "bg-primary text-primary-foreground font-semibold hover:bg-primary/90",
+        following: "border border-border bg-muted text-foreground hover:bg-muted/70",
       },
       size: {
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
+        lg: "h-12 rounded-md px-8",
         icon: "h-9 w-9",
       },
     },
