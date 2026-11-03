@@ -253,7 +253,10 @@ export function migrateState(raw: unknown, seed: AppState): AppState | null {
   if (r.version !== 1 || !Array.isArray(r.posts)) return null;
   type OldPost = Omit<Post, "type" | "media"> & { image: string; alt: string };
   const posts: Post[] = (r.posts as OldPost[]).map(({ image, alt, ...rest }) => {
-    const media: MediaItem[] = [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
+    const fromSeed = seed.posts.find((p) => p.id === rest.id && p.media[0]?.src === image);
+    const media: MediaItem[] = fromSeed
+      ? fromSeed.media
+      : [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
     return { ...rest, media, type: "imagem" };
   });
   const ids = new Set(posts.map((p) => p.id));
