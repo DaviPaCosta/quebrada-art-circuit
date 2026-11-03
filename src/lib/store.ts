@@ -1,8 +1,9 @@
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { createSeedState } from "./mock-data";
 import * as L from "./logic";
-import type { AppState, Category, ReportTarget, Settings, User } from "./types";
+import { clearMedia, deleteMedia } from "./media-db";
+import type { AppState, ReportTarget, Settings, User } from "./types";
 
 const STORAGE_KEY = "vozes-do-muro:v1";
 
@@ -36,8 +37,8 @@ export function hydrateStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as AppState;
-      if (parsed.version === 1) state = { ...createSeedState(), ...parsed };
+      const migrated = L.migrateState(JSON.parse(raw), createSeedState());
+      if (migrated) state = migrated;
     }
   } catch {
     /* dados corrompidos: começa do zero */
@@ -51,11 +52,31 @@ function subscribe(l: () => void) {
   return () => listeners.delete(l);
 }
 
-const getState = () => state;
-const getServerState = () => state;
 
+function shallowEqual(a: unknown, b: unknown) {
+  if (Object.is(a, b)) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((k) => Object.is((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+}
+
+/**
+ * Lê uma parte do estado. O componente só renderiza de novo quando
+ * o valor selecionado muda (comparação rasa), não a cada ação no app.
+ */
 export function useAppState<T>(selector: (s: AppState) => T): T {
-  return selector(useSyncExternalStore(subscribe, getState, getServerState));
+  const memo = useRef<{ s: AppState; sel: (s: AppState) => T; v: T } | null>(null);
+  const getSnapshot = () => {
+    const prev = memo.current;
+    if (prev && prev.s === state && prev.sel === selector) return prev.v;
+    let v = selector(state);
+    if (prev && shallowEqual(prev.v, v)) v = prev.v;
+    memo.current = { s: state, sel: selector, v };
+    return v;
+  };
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 export function useHydrated() {
@@ -107,9 +128,11 @@ export const actions = {
   },
   deleteAccount() {
     const id = me();
-    if (id) set(L.deleteAccount(state, id));
+    if (!id) return;
+    void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.authorId === id)));
+    set(L.deleteAccount(state, id));
   },
-  createPost(data: { image: string; alt: string; title: string; description: string; category: Category; credits: string; tags: string[] }) {
+  createPost(data: L.NewPostData) {
     const id = me();
     if (!id) return null;
     const r = L.createPost(state, id, data);
@@ -119,6 +142,7 @@ export const actions = {
   },
   deletePost(postId: string) {
     const id = me();
+    void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.id === postId && p.authorId === id)));
     set({
       ...state,
       posts: state.posts.filter((p) => !(p.id === postId && p.authorId === id)),
@@ -185,6 +209,7 @@ export const actions = {
     set({ ...state, settings: { ...state.settings, ...patch } });
   },
   resetDemo() {
+    void clearMedia();
     set(createSeedState());
   },
 };
