@@ -158,7 +158,15 @@ export const PostCard = memo(function PostCard({
           </button>
         </div>
         <p className="px-1 text-sm font-bold">{plural(post.likes.length, "curtida", "curtidas")}</p>
-        <h2 className="mt-2 px-1 text-2xl">{post.title}</h2>
+        {detail ? (
+          <h2 className="mt-2 px-1 text-2xl">{post.title}</h2>
+        ) : (
+          <h2 className="mt-2 px-1 text-2xl">
+            <Link to="/post/$id" params={{ id: post.id }} className="hover:text-primary">
+              {post.title}
+            </Link>
+          </h2>
+        )}
         <p className={cn("mt-1 whitespace-pre-line px-1 text-sm leading-relaxed text-foreground/90", !detail && "line-clamp-3")}>
           {post.description}
         </p>

@@ -9,7 +9,7 @@ import { PageTitle } from "@/components/vm/AppShell";
 import { isBlockedBetween, visiblePosts } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { CATEGORIES, type Category } from "@/lib/types";
-import { resolveImage } from "@/lib/images";
+import { MediaImage } from "@/components/vm/media/MediaImage";
 
 type Search = { q?: string | undefined; cat?: Category | undefined };
 
@@ -100,7 +100,7 @@ function Explore() {
         <>
           {highlight && (
             <Link to="/post/$id" params={{ id: highlight.id }} className="group relative mx-4 mt-6 block overflow-hidden rounded-lg border border-border sm:mx-0">
-              <img src={resolveImage(highlight.image)} alt={highlight.alt} className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-80" />
+              <MediaImage {...postCover(highlight)} priority sizes="(min-width: 640px) 1024px, 100vw" className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-80" />
               <div className="bg-fade absolute inset-0" />
               <div className="absolute bottom-0 p-5">
                 <span className="tape text-sm">Destaque da semana</span>

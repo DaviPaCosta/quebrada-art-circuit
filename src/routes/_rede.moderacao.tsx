@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageTitle } from "@/components/vm/AppShell";
 import { UserAvatar } from "@/components/vm/UserAvatar";
-import { resolveImage } from "@/lib/images";
+import { MediaImage } from "@/components/vm/media/MediaImage";
+import { postCover } from "@/lib/logic";
 import { timeAgo } from "@/lib/format";
 import { actions, useAppState, useCurrentUser } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -117,7 +118,7 @@ function ReportItem({ report }: { report: Report }) {
         </div>
         {target?.kind === "post" && (
           <Link to="/post/$id" params={{ id: target.post.id }} className="shrink-0">
-            <img src={resolveImage(target.post.image)} alt="" className="size-16 rounded object-cover" />
+            <MediaImage {...postCover(target.post)} alt="" sizes="64px" className="size-16 rounded object-cover" />
           </Link>
         )}
       </div>
