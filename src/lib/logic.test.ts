@@ -84,7 +84,7 @@ describe("regras da rede", () => {
       posts: [{ id: "px", authorId: "u1", image: "data:abc", alt: "desc", title: "t", description: "", category: "Grafite", credits: "c", tags: [], likes: [], createdAt: "2026-01-01" }],
     };
     const s = L.migrateState(old, createSeedState())!;
-    expect(s.version).toBe(2);
+    expect(s.version).toBe(3);
     const p = s.posts.find((x) => x.id === "px")!;
     expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
     expect(s.posts.some((x) => x.type === "video")).toBe(true);
