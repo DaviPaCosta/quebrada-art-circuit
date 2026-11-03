@@ -31,16 +31,36 @@ export interface User {
   createdAt: string;
 }
 
+export type MediaKind = "image" | "video";
+
+/** Uma foto ou vídeo da publicação. `src`/`poster` podem ser "seed:nome", "idb:chave" ou data URL. */
+export interface MediaItem {
+  id: string;
+  kind: MediaKind;
+  src: string;
+  /** Capa estática do vídeo. */
+  poster?: string | undefined;
+  width: number;
+  height: number;
+  alt: string;
+  /** Duração do vídeo em segundos. */
+  duration?: number | undefined;
+}
+
+export type PostType = "imagem" | "video" | "carrossel";
+
 export interface Post {
   id: string;
   authorId: string;
-  image: string;
-  alt: string;
+  type: PostType;
+  media: MediaItem[];
   title: string;
   description: string;
   category: Category;
   credits: string;
   tags: string[];
+  /** Região opcional e genérica (nunca endereço exato). */
+  region?: string | undefined;
   likes: string[];
   createdAt: string;
   removed?: boolean;
