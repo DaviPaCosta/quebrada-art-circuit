@@ -16,3 +16,4 @@
 - User-uploaded photos/videos are stored as blobs in IndexedDB (`src/lib/media-db.ts`) and referenced as `idb:<key>`; render media only through `MediaImage`/`VideoPlayer`/`useMediaSrc`. Why: localStorage is too small for videos and carousels.
 - Persisted state is versioned; bump `version` and extend `migrateState()` in `logic.ts` whenever the shape changes. Why: users keep old data in their browser.
 - Signed-in screens live under the pathless `_rede` layout, which waits for store hydration and shows a sign-in prompt when logged out. Why: localStorage is unavailable during SSR.
+- Stories live in `state.stories` and expire after 24h via `isStoryActive`; seed stories (`s-seed-*`) get fresh timestamps on every load in `migrateState`. Why: the demo must never show an empty stories row.
