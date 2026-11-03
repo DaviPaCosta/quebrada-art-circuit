@@ -1,4 +1,4 @@
-import type { AppState, CulturalEvent, User, Post, Comment, AppNotification } from "./types";
+import type { AppState, CulturalEvent, User, Post, Comment, AppNotification, Story } from "./types";
 
 const users: User[] = [
   {
@@ -423,9 +423,30 @@ export const EVENTS: CulturalEvent[] = [
   },
 ];
 
+/** Stories de exemplo: horários relativos a agora, para estarem sempre "no ar". */
+function seedStories(): Story[] {
+  const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+  const img = (id: string, name: string, w: number, h: number, alt: string) => ({ id, kind: "image" as const, src: `seed:${name}`, width: w, height: h, alt });
+  return [
+    { id: "s-seed-1", authorId: "u1", createdAt: ago(300), caption: "Primeiro traço do mural novo ✨", viewers: [], reactions: [], media: img("ms1", "grafite", 1024, 1280, "Grafite colorido em andamento num muro autorizado.") },
+    { id: "s-seed-2", authorId: "u1", createdAt: ago(90), caption: "Finalizado! Muro autorizado pela associação 🧡", viewers: [], reactions: [], media: img("ms2", "mural", 1024, 1280, "Mural finalizado com rostos em laranja, roxo e verde.") },
+    {
+      id: "s-seed-3", authorId: "u4", createdAt: ago(45), caption: "Hoje tem sarau. Bora?", viewers: [], reactions: [],
+      media: { id: "ms3", kind: "video", src: "seed:reel-slam", poster: "seed:reel-slam-poster", width: 540, height: 960, duration: 9, alt: "Poeta recitando no microfone em um sarau." },
+    },
+    { id: "s-seed-4", authorId: "u2", createdAt: ago(200), caption: "Estudando letras pra exposição", viewers: [], reactions: [], media: img("ms4", "letras", 1024, 1024, "Painel com letras angulosas no estilo da caligrafia urbana paulistana.") },
+    { id: "s-seed-5", authorId: "u3", createdAt: ago(600), caption: "Cola pronta, papel na mão", viewers: [], reactions: [], media: img("ms5", "lambe", 1024, 1280, "Muro com vários cartazes lambe-lambe.") },
+    {
+      id: "s-seed-6", authorId: "u5", createdAt: ago(30), caption: "Treino de sábado 🔥", viewers: [], reactions: [],
+      media: { id: "ms6", kind: "video", src: "seed:reel-danca", poster: "seed:reel-danca-poster", width: 540, height: 960, duration: 9, alt: "B-boy treinando passos de breaking." },
+    },
+  ];
+}
+
 export function createSeedState(): AppState {
   return {
-    version: 2,
+    version: 3,
+    stories: seedStories(),
     sessionUserId: null,
     users: structuredClone(users),
     posts: structuredClone(posts),

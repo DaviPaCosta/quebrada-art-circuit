@@ -1,4 +1,4 @@
-import type { AppState, Category, MediaItem, Post, PostType, ReportTarget, User } from "./types";
+import type { AppState, Category, MediaItem, Post, PostType, ReportTarget, Story, User } from "./types";
 
 export const uid = (prefix: string) =>
   `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -156,7 +156,7 @@ export function toggleBlock(s: AppState, userId: string, targetId: string): AppS
   return { ...s, blocks: toggleIn(s.blocks, userId, targetId), follows };
 }
 
-export function isBlockedBetween(s: AppState, a: string, b: string) {
+export function isBlockedBetween(s: Pick<AppState, "blocks">, a: string, b: string) {
   return (s.blocks[a] ?? []).includes(b) || (s.blocks[b] ?? []).includes(a);
 }
 
@@ -245,23 +245,129 @@ export function storedMediaRefs(posts: Post[]) {
   return posts.flatMap((p) => p.media.flatMap((m) => [m.src, m.poster ?? ""])).filter((r) => r.startsWith("idb:"));
 }
 
-/** Atualiza dados salvos em versões antigas do app (uma imagem por publicação → lista de mídias). */
+/** Atualiza dados salvos em versões antigas do app, uma versão de cada vez. */
 export function migrateState(raw: unknown, seed: AppState): AppState | null {
   if (!raw || typeof raw !== "object") return null;
-  const r = raw as { version?: number; posts?: unknown[] } & Partial<AppState>;
-  if (r.version === seed.version) return { ...seed, ...(r as AppState) };
-  if (r.version !== 1 || !Array.isArray(r.posts)) return null;
-  type OldPost = Omit<Post, "type" | "media"> & { image: string; alt: string };
-  const posts: Post[] = (r.posts as OldPost[]).map(({ image, alt, ...rest }) => {
-    const fromSeed = seed.posts.find((p) => p.id === rest.id && p.media[0]?.src === image);
-    const media: MediaItem[] = fromSeed
-      ? fromSeed.media
-      : [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
-    return { ...rest, media, type: "imagem" };
+  let r = raw as { version?: number; posts?: unknown[] } & Partial<AppState>;
+  if (r.version === 1) {
+    // v1 → v2: uma imagem por publicação → lista de mídias.
+    if (!Array.isArray(r.posts)) return null;
+    type OldPost = Omit<Post, "type" | "media"> & { image: string; alt: string };
+    const posts: Post[] = (r.posts as OldPost[]).map(({ image, alt, ...rest }) => {
+      const fromSeed = seed.posts.find((p) => p.id === rest.id && p.media[0]?.src === image);
+      const media: MediaItem[] = fromSeed
+        ? fromSeed.media
+        : [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
+      return { ...rest, media, type: "imagem" };
+    });
+    const ids = new Set(posts.map((p) => p.id));
+    const newSeedPosts = seed.posts.filter((p) => !ids.has(p.id));
+    r = { ...r, version: 2, posts: [...posts, ...newSeedPosts] };
+  }
+  if (r.version === 2) {
+    // v2 → v3: chegam os stories.
+    r = { ...r, version: 3, stories: seed.stories };
+  }
+  if (r.version !== seed.version) return null;
+  return refreshSeedStories({ ...seed, ...(r as AppState) }, seed);
+}
+
+/* ---------- Stories ---------- */
+
+export const STORY_HOURS = 24;
+export const STORY_IMAGE_SECONDS = 6;
+const STORY_MS = STORY_HOURS * 60 * 60 * 1000;
+
+export function isStoryActive(story: Story, nowMs = Date.now()) {
+  const age = nowMs - new Date(story.createdAt).getTime();
+  return age >= 0 && age < STORY_MS;
+}
+
+/** Stories de exemplo renascem a cada visita para a demonstração nunca ficar vazia. */
+export function refreshSeedStories(s: AppState, seed: AppState): AppState {
+  const fresh = new Map(seed.stories.map((st) => [st.id, st.createdAt]));
+  if (!s.stories.some((st) => fresh.has(st.id))) return s;
+  return {
+    ...s,
+    stories: s.stories.map((st) => (fresh.has(st.id) ? { ...st, createdAt: fresh.get(st.id)! } : st)),
+  };
+}
+
+export function createStory(
+  s: AppState,
+  userId: string,
+  media: MediaItem,
+  caption: string,
+): { state: AppState; id: string } {
+  const id = uid("s");
+  const story: Story = { id, authorId: userId, media, caption: caption.trim().slice(0, 120), createdAt: now(), viewers: [], reactions: [] };
+  return { id, state: { ...s, stories: [...s.stories, story] } };
+}
+
+export type StoryGroup = { user: User; stories: Story[]; seen: boolean };
+
+/**
+ * Stories que a pessoa vê, agrupados por autor: os próprios primeiro,
+ * depois quem ela segue (não vistos antes). Quem ainda não segue ninguém vê a comunidade toda.
+ */
+export function storyGroups(s: Pick<AppState, "stories" | "follows" | "blocks" | "users">, viewerId: string, nowMs = Date.now()): StoryGroup[] {
+  const following = s.follows[viewerId] ?? [];
+  const showAll = following.length === 0;
+  const byAuthor = new Map<string, Story[]>();
+  for (const st of s.stories) {
+    if (!isStoryActive(st, nowMs)) continue;
+    const mine = st.authorId === viewerId;
+    if (!mine && !showAll && !following.includes(st.authorId)) continue;
+    if (!mine && isBlockedBetween(s, viewerId, st.authorId)) continue;
+    byAuthor.set(st.authorId, [...(byAuthor.get(st.authorId) ?? []), st]);
+  }
+  const groups: StoryGroup[] = [];
+  for (const [authorId, list] of byAuthor) {
+    const user = s.users.find((u) => u.id === authorId);
+    if (!user) continue;
+    const stories = [...list].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    groups.push({ user, stories, seen: stories.every((st) => st.viewers.includes(viewerId) || st.authorId === viewerId) });
+  }
+  return groups.sort((a, b) => {
+    if (a.user.id === viewerId) return -1;
+    if (b.user.id === viewerId) return 1;
+    if (a.seen !== b.seen) return a.seen ? 1 : -1;
+    return b.stories.at(-1)!.createdAt.localeCompare(a.stories.at(-1)!.createdAt);
   });
-  const ids = new Set(posts.map((p) => p.id));
-  const newSeedPosts = seed.posts.filter((p) => !ids.has(p.id));
-  return { ...seed, ...(r as unknown as AppState), version: seed.version, posts: [...posts, ...newSeedPosts] };
+}
+
+export function markStoryViewed(s: AppState, userId: string, storyId: string): AppState {
+  const st = s.stories.find((x) => x.id === storyId);
+  if (!st || st.authorId === userId || st.viewers.includes(userId)) return s;
+  return { ...s, stories: s.stories.map((x) => (x.id === storyId ? { ...x, viewers: [...x.viewers, userId] } : x)) };
+}
+
+/** Manda 🔥 no story (uma vez por pessoa) e avisa o autor. */
+export function reactToStory(s: AppState, userId: string, storyId: string): AppState {
+  const st = s.stories.find((x) => x.id === storyId);
+  if (!st || st.authorId === userId || st.reactions.includes(userId)) return s;
+  return {
+    ...s,
+    stories: s.stories.map((x) => (x.id === storyId ? { ...x, reactions: [...x.reactions, userId] } : x)),
+    notifications: [
+      { id: uid("n"), userId: st.authorId, actorId: userId, type: "story", createdAt: now(), read: false },
+      ...s.notifications,
+    ],
+  };
+}
+
+export function deleteStory(s: AppState, userId: string, storyId: string): AppState {
+  if (!s.stories.some((x) => x.id === storyId && x.authorId === userId)) return s;
+  return { ...s, stories: s.stories.filter((x) => x.id !== storyId) };
+}
+
+/** Stories vencidos há mais de um dia: podem ser apagados do aparelho. */
+export function expiredStories(s: AppState, nowMs = Date.now()) {
+  return s.stories.filter((st) => nowMs - new Date(st.createdAt).getTime() > 2 * STORY_MS);
+}
+
+export function storyMediaRefs(stories: Story[]) {
+  return stories.flatMap((st) => [st.media.src, st.media.poster ?? ""]).filter((r) => r.startsWith("idb:"));
 }
 
 export function parseTags(raw: string): string[] {
@@ -333,6 +439,9 @@ export function deleteAccount(s: AppState, userId: string): AppState {
       .filter((p) => p.authorId !== userId)
       .map((p) => ({ ...p, likes: p.likes.filter((l) => l !== userId) })),
     comments: s.comments.filter((c) => c.authorId !== userId),
+    stories: s.stories
+      .filter((st) => st.authorId !== userId)
+      .map((st) => ({ ...st, viewers: st.viewers.filter((v) => v !== userId), reactions: st.reactions.filter((v) => v !== userId) })),
     notifications: s.notifications.filter((n) => n.userId !== userId && n.actorId !== userId),
     follows: strip(s.follows),
     blocks: strip(s.blocks),

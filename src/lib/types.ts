@@ -66,6 +66,19 @@ export interface Post {
   removed?: boolean;
 }
 
+/** Story: foto ou vídeo que some depois de 24 horas. */
+export interface Story {
+  id: string;
+  authorId: string;
+  media: MediaItem;
+  caption: string;
+  createdAt: string;
+  /** Quem já viu. */
+  viewers: string[];
+  /** Quem mandou um 🔥. */
+  reactions: string[];
+}
+
 export interface Comment {
   id: string;
   postId: string;
@@ -74,7 +87,7 @@ export interface Comment {
   createdAt: string;
 }
 
-export type NotificationType = "like" | "comment" | "follow" | "moderacao";
+export type NotificationType = "like" | "comment" | "follow" | "moderacao" | "story";
 
 export interface AppNotification {
   id: string;
@@ -123,6 +136,7 @@ export interface AppState {
   sessionUserId: string | null;
   users: User[];
   posts: Post[];
+  stories: Story[];
   comments: Comment[];
   notifications: AppNotification[];
   reports: Report[];

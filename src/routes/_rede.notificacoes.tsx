@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Heart, MessageCircle, ShieldCheck, UserPlus } from "lucide-react";
+import { Heart, MessageCircle, ShieldCheck, UserPlus, Flame } from "lucide-react";
 import { useEffect } from "react";
 import { PageTitle } from "@/components/vm/AppShell";
 import { FollowButton } from "@/components/vm/ArtistCard";
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_rede/notificacoes")({
   component: Notifications,
 });
 
-const ICON = { like: Heart, comment: MessageCircle, follow: UserPlus, moderacao: ShieldCheck };
+const ICON = { like: Heart, comment: MessageCircle, follow: UserPlus, moderacao: ShieldCheck, story: Flame };
 
 function Notifications() {
   const meId = useAppState((s) => s.sessionUserId);
@@ -66,6 +66,8 @@ function NotificationRow({ n, unread }: { n: AppNotification; unread: boolean })
         ? `comentou: “${n.text ?? ""}”`
         : n.type === "follow"
           ? "começou a seguir você"
+          : n.type === "story"
+            ? "mandou 🔥 no seu story"
           : (n.text ?? "aviso da moderação");
 
   return (
