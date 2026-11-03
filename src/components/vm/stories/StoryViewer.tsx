@@ -6,7 +6,7 @@ import { ReportDialog } from "@/components/vm/ReportDialog";
 import { UserAvatar } from "@/components/vm/UserAvatar";
 import { MediaImage } from "@/components/vm/media/MediaImage";
 import { useMediaSrc } from "@/hooks/use-media-src";
-import { format } from "@/lib/format-story";
+import { timeAgo } from "@/lib/format";
 import { STORY_IMAGE_SECONDS, type StoryGroup } from "@/lib/logic";
 import { actions, useAppState } from "@/lib/store";
 import type { Story } from "@/lib/types";
@@ -196,7 +196,7 @@ export function StoryViewer({ groups: initialGroups, startIndex, onClose }: Prop
               <UserAvatar user={group.user} size="sm" />
               <span className="truncate text-sm font-bold">{group.user.username}</span>
             </Link>
-            <span className="shrink-0 text-xs text-foreground/70">{format(story.createdAt)}</span>
+            <span className="shrink-0 text-xs text-foreground/70">{timeAgo(story.createdAt)}</span>
             <div className="ml-auto flex items-center">
               <IconButton label={paused ? "Continuar" : "Pausar"} onClick={() => setHeld((h) => !h)}>
                 {paused ? <Play className="size-5" /> : <Pause className="size-5" />}
