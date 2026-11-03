@@ -156,7 +156,7 @@ export function toggleBlock(s: AppState, userId: string, targetId: string): AppS
   return { ...s, blocks: toggleIn(s.blocks, userId, targetId), follows };
 }
 
-export function isBlockedBetween(s: AppState, a: string, b: string) {
+export function isBlockedBetween(s: Pick<AppState, "blocks">, a: string, b: string) {
   return (s.blocks[a] ?? []).includes(b) || (s.blocks[b] ?? []).includes(a);
 }
 
@@ -310,7 +310,7 @@ export type StoryGroup = { user: User; stories: Story[]; seen: boolean };
  * Stories que a pessoa vê, agrupados por autor: os próprios primeiro,
  * depois quem ela segue (não vistos antes). Quem ainda não segue ninguém vê a comunidade toda.
  */
-export function storyGroups(s: AppState, viewerId: string, nowMs = Date.now()): StoryGroup[] {
+export function storyGroups(s: Pick<AppState, "stories" | "follows" | "blocks" | "users">, viewerId: string, nowMs = Date.now()): StoryGroup[] {
   const following = s.follows[viewerId] ?? [];
   const showAll = following.length === 0;
   const byAuthor = new Map<string, Story[]>();

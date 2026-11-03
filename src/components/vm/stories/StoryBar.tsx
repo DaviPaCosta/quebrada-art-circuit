@@ -17,7 +17,7 @@ export function StoryBar() {
   const blocks = useAppState((s) => s.blocks);
   const users = useAppState((s) => s.users);
   const groups = useMemo(
-    () => (me ? storyGroups({ stories, follows, blocks, users } as Parameters<typeof storyGroups>[0], me.id) : []),
+    () => (me ? storyGroups({ stories, follows, blocks, users }, me.id) : []),
     [me, stories, follows, blocks, users],
   );
   const [open, setOpen] = useState<{ groups: StoryGroup[]; index: number } | null>(null);
