@@ -38,7 +38,7 @@ export function StoryBar() {
             className="flex w-16 flex-col items-center gap-1"
             aria-label={mineIndex >= 0 ? "Ver seu story" : "Criar story"}
           >
-            <span className={cn("rounded-full p-0.5", mineIndex >= 0 ? "bg-[image:var(--gradient-spray)]" : "bg-border")}>
+            <span className={cn("flex rounded-full p-[3px]", mineIndex >= 0 ? "bg-[image:var(--gradient-spray)]" : "bg-border")}>
               <UserAvatar user={me} size="md" className="size-14 border-2 border-background" />
             </span>
             <span className="w-full truncate text-center text-[11px] text-muted-foreground">Seu story</span>
@@ -78,7 +78,7 @@ export function StoryBar() {
             className="flex w-16 shrink-0 flex-col items-center gap-1"
             aria-label={`Ver story de ${g.user.username}${g.seen ? " (visto)" : ""}`}
           >
-            <span className={cn("rounded-full p-0.5", g.seen ? "bg-border" : "bg-[image:var(--gradient-spray)]")}>
+            <span className={cn("flex rounded-full p-[3px]", g.seen ? "bg-border" : "bg-[image:var(--gradient-spray)]")}>
               <UserAvatar user={g.user} size="md" className="size-14 border-2 border-background" />
             </span>
             <span className={cn("w-full truncate text-center text-[11px]", g.seen ? "text-muted-foreground/70" : "text-foreground")}>
