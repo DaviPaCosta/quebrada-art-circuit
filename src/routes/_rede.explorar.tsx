@@ -69,7 +69,10 @@ function Explore() {
     return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
   }, [state, meId]);
 
-  const highlight = visiblePosts(state, meId).slice().sort((a, b) => b.likes.length - a.likes.length)[0];
+  const highlight = useMemo(
+    () => visiblePosts(state, meId).sort((a, b) => b.likes.length - a.likes.length)[0],
+    [state, meId],
+  );
 
   const setSearch = (next: Search) => navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
 

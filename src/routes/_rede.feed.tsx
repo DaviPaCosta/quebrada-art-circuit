@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { Clapperboard } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArtistCard } from "@/components/vm/ArtistCard";
 import { PostCard } from "@/components/vm/PostCard";
@@ -22,8 +23,12 @@ export const Route = createFileRoute("/_rede/feed")({
   component: Feed,
 });
 
+const PAGE_SIZE = 10;
+
 function Feed() {
   const [tab, setTab] = useState<"todos" | "seguindo">("todos");
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const sentinel = useRef<HTMLDivElement>(null);
   const state = useAppState((s) => s);
   const meId = state.sessionUserId!;
   const following = state.follows[meId] ?? [];
@@ -32,6 +37,20 @@ function Feed() {
     const all = visiblePosts(state, meId);
     return tab === "todos" ? all : all.filter((p) => following.includes(p.authorId) || p.authorId === meId);
   }, [state, meId, tab, following]);
+
+  const shown = posts.slice(0, limit);
+  const hasMore = posts.length > limit;
+
+  // Carrega mais 10 publicações quando a pessoa chega perto do fim.
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setLimit((l) => l + PAGE_SIZE), {
+      rootMargin: "600px 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, limit]);
 
   const suggestions = state.users.filter(
     (u) => u.id !== meId && !following.includes(u.id) && !isBlockedBetween(state, meId, u.id),
@@ -43,6 +62,12 @@ function Feed() {
       <div className="mx-auto w-full max-w-xl">
         {stories.length > 0 && (
           <div className="scrollbar-none flex gap-4 overflow-x-auto px-4 pt-4 sm:px-0">
+            <Link to="/reels" className="flex w-16 shrink-0 flex-col items-center gap-1">
+              <span className="flex size-[60px] items-center justify-center rounded-full border-2 border-primary bg-card text-primary">
+                <Clapperboard className="size-6" />
+              </span>
+              <span className="w-full truncate text-center text-[11px] font-semibold text-primary">Reels</span>
+            </Link>
             {stories.map((u) => (
               <Link key={u.id} to="/u/$username" params={{ username: u.username }} className="flex w-16 shrink-0 flex-col items-center gap-1">
                 <span className="rounded-full bg-[image:var(--gradient-spray)] p-0.5">
@@ -60,7 +85,10 @@ function Feed() {
               key={t}
               role="tab"
               aria-selected={tab === t}
-              onClick={() => setTab(t)}
+              onClick={() => {
+                setTab(t);
+                setLimit(PAGE_SIZE);
+              }}
               className={cn(
                 "flex-1 py-3 font-display text-lg uppercase tracking-wide text-muted-foreground",
                 tab === t && "border-b-2 border-primary text-foreground",
@@ -72,9 +100,16 @@ function Feed() {
         </div>
 
         <div className="flex flex-col gap-0 sm:gap-6 sm:pt-6">
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} />
+          {shown.map((p, i) => (
+            <PostCard key={p.id} post={p} priority={i === 0} />
           ))}
+          {hasMore && (
+            <div ref={sentinel} className="flex justify-center py-6">
+              <Button variant="sand" onClick={() => setLimit((l) => l + PAGE_SIZE)}>
+                Carregar mais
+              </Button>
+            </div>
+          )}
           {posts.length === 0 && (
             <div className="px-6 py-16 text-center">
               <p className="font-marker text-xl text-accent">Muro vazio por aqui</p>
