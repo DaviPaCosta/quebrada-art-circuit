@@ -73,7 +73,7 @@ describe("regras da rede", () => {
   });
 
   it("recorte 4:5 de foto 1000x1000 respeita a posição escolhida", () => {
-    expect(L.cropRect(1000, 1000, "4:5", 0)).toEqual({ x: 100, y: 0, width: 800, height: 1000 });
+    expect(L.cropRect(1000, 1000, "4:5", 0)).toEqual({ x: 0, y: 0, width: 800, height: 1000 });
     expect(L.cropRect(1000, 1000, "4:5", 1)).toEqual({ x: 200, y: 0, width: 800, height: 1000 });
   });
 
