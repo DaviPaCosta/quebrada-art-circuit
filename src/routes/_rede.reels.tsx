@@ -64,7 +64,7 @@ const ReelCard = memo(function ReelCard({ post, meId }: { post: Post; meId: stri
     <section className="relative h-full snap-start snap-always md:mb-4 md:overflow-hidden md:rounded-xl" aria-label={post.title}>
       <VideoPlayer src={m.src} poster={m.poster} alt={m.alt} width={m.width} height={m.height} className="size-full" large />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/50 to-transparent p-4 pr-20 pt-16">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 via-background/50 to-transparent p-4 pr-28 pt-16">
         <Link to="/u/$username" params={{ username: author?.username ?? "" }} className="pointer-events-auto flex items-center gap-2">
           <UserAvatar user={author} size="sm" />
           <span className="text-sm font-bold">@{author?.username}</span>
