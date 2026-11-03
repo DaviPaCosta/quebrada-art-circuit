@@ -44,4 +44,49 @@ describe("regras da rede", () => {
     s = L.resolveReport(s, "u8", id, "remover");
     expect(s.posts.find((p) => p.id === "p2")!.removed).toBe(true);
   });
+
+  it("uma mídia é foto ou vídeo; duas ou mais viram carrossel", () => {
+    expect(L.postTypeFor([{ kind: "image" }])).toBe("imagem");
+    expect(L.postTypeFor([{ kind: "video" }])).toBe("video");
+    expect(L.postTypeFor([{ kind: "video" }, { kind: "image" }])).toBe("carrossel");
+  });
+
+  it("vídeo pode ter no máximo 60 segundos", () => {
+    expect(L.validateVideo(60, 1000)).toBeNull();
+    expect(L.validateVideo(61, 1000)).not.toBeNull();
+  });
+
+  it("vídeo pode ter no máximo 50 MB", () => {
+    expect(L.validateVideo(10, 50 * 1024 * 1024)).toBeNull();
+    expect(L.validateVideo(10, 50 * 1024 * 1024 + 1)).not.toBeNull();
+  });
+
+  it("publicação aceita no máximo 10 mídias", () => {
+    const m = { id: "x", kind: "image" as const, src: "data:", width: 1, height: 1, alt: "a" };
+    const media = Array.from({ length: 12 }, (_, i) => ({ ...m, id: `x${i}` }));
+    const r = L.createPost(createSeedState(), "u1", { media, title: "t", description: "", category: "Grafite", credits: "c", tags: [] });
+    expect(r.state.posts[0]!.media).toHaveLength(10);
+  });
+
+  it("recorte quadrado de foto 1000x500 pega o centro", () => {
+    expect(L.cropRect(1000, 500, "1:1")).toEqual({ x: 250, y: 0, width: 500, height: 500 });
+  });
+
+  it("recorte 4:5 de foto 1000x1000 respeita a posição escolhida", () => {
+    expect(L.cropRect(1000, 1000, "4:5", 0)).toEqual({ x: 100, y: 0, width: 800, height: 1000 });
+    expect(L.cropRect(1000, 1000, "4:5", 1)).toEqual({ x: 200, y: 0, width: 800, height: 1000 });
+  });
+
+  it("dados salvos na versão antiga continuam funcionando", () => {
+    const old = {
+      version: 1,
+      sessionUserId: "u1",
+      posts: [{ id: "px", authorId: "u1", image: "data:abc", alt: "desc", title: "t", description: "", category: "Grafite", credits: "c", tags: [], likes: [], createdAt: "2026-01-01" }],
+    };
+    const s = L.migrateState(old, createSeedState())!;
+    expect(s.version).toBe(2);
+    const p = s.posts.find((x) => x.id === "px")!;
+    expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
+    expect(s.posts.some((x) => x.type === "video")).toBe(true);
+  });
 });
