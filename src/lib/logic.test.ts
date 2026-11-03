@@ -89,4 +89,49 @@ describe("regras da rede", () => {
     expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
     expect(s.posts.some((x) => x.type === "video")).toBe(true);
   });
+
+  describe("stories", () => {
+    const img = { id: "m", kind: "image" as const, src: "data:x", width: 10, height: 10, alt: "x" };
+
+    it("story some depois de 24 horas", () => {
+      const r = L.createStory(createSeedState(), "u1", img, "oi");
+      const st = r.state.stories.find((x) => x.id === r.id)!;
+      const t = new Date(st.createdAt).getTime();
+      expect(L.isStoryActive(st, t + 23 * 3600_000)).toBe(true);
+      expect(L.isStoryActive(st, t + 24 * 3600_000)).toBe(false);
+    });
+
+    it("só aparece story de quem a pessoa segue (e o próprio)", () => {
+      const s = createSeedState(); // u8 segue u1, u2, u4
+      const authors = L.storyGroups(s, "u8").map((g) => g.user.id);
+      expect(authors).toEqual(expect.arrayContaining(["u1", "u2", "u4"]));
+      expect(authors).not.toContain("u5");
+    });
+
+    it("bloqueio esconde o story", () => {
+      const s = L.toggleBlock(createSeedState(), "u8", "u1");
+      expect(L.storyGroups(s, "u8").some((g) => g.user.id === "u1")).toBe(false);
+    });
+
+    it("mandar fogo conta uma vez e avisa o autor", () => {
+      let s = L.reactToStory(createSeedState(), "u8", "s-seed-1");
+      s = L.reactToStory(s, "u8", "s-seed-1");
+      expect(s.stories.find((x) => x.id === "s-seed-1")!.reactions).toEqual(["u8"]);
+      expect(s.notifications[0]).toMatchObject({ userId: "u1", actorId: "u8", type: "story" });
+    });
+
+    it("só o autor apaga o próprio story", () => {
+      const s = createSeedState();
+      expect(L.deleteStory(s, "u8", "s-seed-1").stories.length).toBe(s.stories.length);
+      expect(L.deleteStory(s, "u1", "s-seed-1").stories.length).toBe(s.stories.length - 1);
+    });
+
+    it("dados da versão 2 ganham os stories de exemplo", () => {
+      const seed = createSeedState();
+      const old = { ...seed, version: 2, stories: undefined };
+      const m = L.migrateState(old, seed)!;
+      expect(m.version).toBe(3);
+      expect(m.stories.length).toBe(seed.stories.length);
+    });
+  });
 });
