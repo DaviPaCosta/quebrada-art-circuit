@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { PageTitle } from "@/components/vm/AppShell";
 import { FollowButton } from "@/components/vm/ArtistCard";
 import { UserAvatar } from "@/components/vm/UserAvatar";
-import { resolveImage } from "@/lib/images";
+import { MediaImage } from "@/components/vm/media/MediaImage";
+import { postCover } from "@/lib/logic";
 import { timeAgo } from "@/lib/format";
 import { actions, useAppState } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,7 @@ function NotificationRow({ n, unread }: { n: AppNotification; unread: boolean })
       </p>
       {post ? (
         <Link to="/post/$id" params={{ id: post.id }} className="shrink-0">
-          <img src={resolveImage(post.image)} alt="" className="size-12 rounded object-cover" />
+          <MediaImage {...postCover(post)} alt="" sizes="48px" className="size-12 rounded object-cover" />
         </Link>
       ) : n.type === "follow" && actor ? (
         <FollowButton targetId={actor.id} />

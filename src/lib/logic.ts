@@ -1,4 +1,4 @@
-import type { AppState, Category, Post, ReportTarget, User } from "./types";
+import type { AppState, Category, MediaItem, Post, PostType, ReportTarget, User } from "./types";
 
 export const uid = (prefix: string) =>
   `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -167,22 +167,101 @@ export function visiblePosts(s: AppState, viewerId: string | null): Post[] {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function createPost(
-  s: AppState,
-  userId: string,
-  data: {
-    image: string;
-    alt: string;
-    title: string;
-    description: string;
-    category: Category;
-    credits: string;
-    tags: string[];
-  },
-): { state: AppState; id: string } {
+export type NewPostData = {
+  media: MediaItem[];
+  title: string;
+  description: string;
+  category: Category;
+  credits: string;
+  tags: string[];
+  region?: string | undefined;
+};
+
+export function createPost(s: AppState, userId: string, data: NewPostData): { state: AppState; id: string } {
   const id = uid("p");
-  const post: Post = { id, authorId: userId, likes: [], createdAt: now(), ...data };
+  const media = data.media.slice(0, MAX_MEDIA);
+  const post: Post = {
+    id,
+    authorId: userId,
+    likes: [],
+    createdAt: now(),
+    ...data,
+    media,
+    type: postTypeFor(media),
+  };
   return { id, state: { ...s, posts: [post, ...s.posts] } };
+}
+
+/* ---------- Fotos e vídeos ---------- */
+
+export const MAX_MEDIA = 10;
+export const MAX_VIDEO_SECONDS = 60;
+export const MAX_VIDEO_MB = 50;
+export const MAX_IMAGE_MB = 20;
+
+export function postTypeFor(media: Pick<MediaItem, "kind">[]): PostType {
+  if (media.length > 1) return "carrossel";
+  return media[0]?.kind === "video" ? "video" : "imagem";
+}
+
+/** Regras do vídeo no protótipo: até 60 s e 50 MB. */
+export function validateVideo(durationSec: number, sizeBytes: number): string | null {
+  if (!Number.isFinite(durationSec) || durationSec <= 0) return "Não foi possível ler a duração do vídeo.";
+  if (durationSec > MAX_VIDEO_SECONDS) return `Vídeos podem ter no máximo ${MAX_VIDEO_SECONDS} segundos.`;
+  if (sizeBytes > MAX_VIDEO_MB * 1024 * 1024) return `Vídeos podem ter no máximo ${MAX_VIDEO_MB} MB.`;
+  return null;
+}
+
+export type CropAspect = "original" | "1:1" | "4:5" | "16:9";
+
+export const CROP_RATIOS: Record<Exclude<CropAspect, "original">, number> = {
+  "1:1": 1,
+  "4:5": 4 / 5,
+  "16:9": 16 / 9,
+};
+
+/** Área central recortada; `pos` (0 a 1) move o recorte no eixo que sobra. */
+export function cropRect(w: number, h: number, aspect: CropAspect, pos = 0.5) {
+  const p = Math.min(1, Math.max(0, pos));
+  if (aspect === "original") return { x: 0, y: 0, width: w, height: h };
+  const target = CROP_RATIOS[aspect];
+  if (w / h > target) {
+    const width = Math.round(h * target);
+    return { x: Math.round((w - width) * p), y: 0, width, height: h };
+  }
+  const height = Math.round(w / target);
+  return { x: 0, y: Math.round((h - height) * p), width: w, height };
+}
+
+/** Imagem que representa a publicação em grades e miniaturas (capa do vídeo, se houver). */
+export function postCover(post: Post) {
+  const m = post.media[0];
+  if (!m) return { src: "", alt: post.title, width: 1, height: 1 };
+  return { src: m.kind === "video" ? (m.poster ?? "") : m.src, alt: m.alt, width: m.width, height: m.height };
+}
+
+/** Referências de arquivos guardados no aparelho, para apagar junto com a publicação. */
+export function storedMediaRefs(posts: Post[]) {
+  return posts.flatMap((p) => p.media.flatMap((m) => [m.src, m.poster ?? ""])).filter((r) => r.startsWith("idb:"));
+}
+
+/** Atualiza dados salvos em versões antigas do app (uma imagem por publicação → lista de mídias). */
+export function migrateState(raw: unknown, seed: AppState): AppState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as { version?: number; posts?: unknown[] } & Partial<AppState>;
+  if (r.version === seed.version) return { ...seed, ...(r as AppState) };
+  if (r.version !== 1 || !Array.isArray(r.posts)) return null;
+  type OldPost = Omit<Post, "type" | "media"> & { image: string; alt: string };
+  const posts: Post[] = (r.posts as OldPost[]).map(({ image, alt, ...rest }) => {
+    const fromSeed = seed.posts.find((p) => p.id === rest.id && p.media[0]?.src === image);
+    const media: MediaItem[] = fromSeed
+      ? fromSeed.media
+      : [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
+    return { ...rest, media, type: "imagem" };
+  });
+  const ids = new Set(posts.map((p) => p.id));
+  const newSeedPosts = seed.posts.filter((p) => !ids.has(p.id));
+  return { ...seed, ...(r as unknown as AppState), version: seed.version, posts: [...posts, ...newSeedPosts] };
 }
 
 export function parseTags(raw: string): string[] {

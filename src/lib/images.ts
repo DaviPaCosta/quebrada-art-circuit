@@ -1,31 +1,46 @@
-import mural from "@/assets/post-mural.jpg";
-import letras from "@/assets/post-letras.jpg";
-import lambe from "@/assets/post-lambe.jpg";
-import poesia from "@/assets/post-poesia.jpg";
-import danca from "@/assets/post-danca.jpg";
-import grafite from "@/assets/post-grafite.jpg";
-import rap from "@/assets/post-rap.jpg";
-import foto from "@/assets/post-foto.jpg";
+/**
+ * Mídias de demonstração ficam em src/assets/seed em vários tamanhos:
+ *  - nome.jpg (fallback) + nome-320/640/1024.webp (versões otimizadas)
+ *  - nome.mp4 (vídeo H.264) + nome-poster.webp (capa)
+ * Nas publicações elas aparecem como "seed:nome" para sobreviver a novas versões do app.
+ */
+const files = import.meta.glob("/src/assets/seed/*", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
 
-const SEED_IMAGES: Record<string, string> = {
-  mural,
-  letras,
-  lambe,
-  poesia,
-  danca,
-  grafite,
-  rap,
-  foto,
-};
+const file = (name: string) => files[`/src/assets/seed/${name}`];
+const WIDTHS = [320, 640, 1024];
 
-/** Imagens de exemplo são guardadas como "seed:nome" para sobreviver a novas versões do app. */
+export interface ResolvedSource {
+  src: string;
+  /** srcset em WebP, quando houver versões por tamanho. */
+  webpSrcSet?: string | undefined;
+}
+
+export function resolveSeed(name: string): ResolvedSource | undefined {
+  const jpg = file(`${name}.jpg`);
+  if (jpg) {
+    const set = WIDTHS.map((w) => {
+      const url = file(`${name}-${w}.webp`);
+      return url ? `${url} ${w}w` : null;
+    }).filter(Boolean);
+    return { src: jpg, webpSrcSet: set.length ? set.join(", ") : undefined };
+  }
+  const other = file(`${name}.mp4`) ?? file(`${name}.webp`);
+  return other ? { src: other } : undefined;
+}
+
+/** Resolve imagens síncronas (seed, data URL ou link). "idb:" precisa de useMediaSrc. */
 export function resolveImage(src: string | undefined): string | undefined {
   if (!src) return undefined;
-  if (src.startsWith("seed:")) return SEED_IMAGES[src.slice(5)];
+  if (src.startsWith("seed:")) return resolveSeed(src.slice(5))?.src;
+  if (src.startsWith("idb:")) return undefined;
   return src;
 }
 
-/** Reduz a imagem enviada para caber no armazenamento do aparelho. */
+/** Reduz a imagem enviada para caber no armazenamento do aparelho (usado na foto de perfil). */
 export function fileToResizedDataUrl(file: File, max = 1080, quality = 0.82): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

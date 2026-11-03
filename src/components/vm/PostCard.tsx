@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bookmark, Flag, Heart, MessageCircle, MoreHorizontal, Share2, ShieldOff, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { Bookmark, Clapperboard, Flag, GalleryHorizontal, Heart, MessageCircle, MoreHorizontal, Share2, ShieldOff, Trash2 } from "lucide-react";
+import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { actions, useAppState } from "@/lib/store";
-import { resolveImage } from "@/lib/images";
+import { postCover } from "@/lib/logic";
 import { plural, timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Post } from "@/lib/types";
@@ -18,8 +18,19 @@ import { UserAvatar } from "./UserAvatar";
 import { CategoryTag } from "./CategoryChips";
 import { ReportDialog } from "./ReportDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { MediaImage } from "./media/MediaImage";
+import { MediaViewer } from "./media/MediaViewer";
 
-export function PostCard({ post, detail = false }: { post: Post; detail?: boolean }) {
+export const PostCard = memo(function PostCard({
+  post,
+  detail = false,
+  priority = false,
+}: {
+  post: Post;
+  detail?: boolean;
+  /** Primeira publicação visível: carrega a imagem antes das outras. */
+  priority?: boolean;
+}) {
   const navigate = useNavigate();
   const author = useAppState((s) => s.users.find((u) => u.id === post.authorId));
   const meId = useAppState((s) => s.sessionUserId);
@@ -102,11 +113,11 @@ export function PostCard({ post, detail = false }: { post: Post; detail?: boolea
       </header>
 
       <div className="relative select-none bg-muted" onClick={onImageTap}>
-        {detail ? (
-          <img src={resolveImage(post.image)} alt={post.alt} className="max-h-[80vh] w-full object-contain" />
+        {detail || post.type !== "imagem" ? (
+          <MediaViewer media={post.media} detail={detail} priority={priority} />
         ) : (
           <Link to="/post/$id" params={{ id: post.id }} onClick={(e) => e.detail > 1 && e.preventDefault()} aria-label={`Abrir publicação ${post.title}`}>
-            <img src={resolveImage(post.image)} alt={post.alt} loading="lazy" className="aspect-[4/5] w-full object-cover" />
+            <MediaViewer media={post.media} priority={priority} />
           </Link>
         )}
         {heart > 0 && (
@@ -147,13 +158,26 @@ export function PostCard({ post, detail = false }: { post: Post; detail?: boolea
           </button>
         </div>
         <p className="px-1 text-sm font-bold">{plural(post.likes.length, "curtida", "curtidas")}</p>
-        <h2 className="mt-2 px-1 text-2xl">{post.title}</h2>
+        {detail ? (
+          <h2 className="mt-2 px-1 text-2xl">{post.title}</h2>
+        ) : (
+          <h2 className="mt-2 px-1 text-2xl">
+            <Link to="/post/$id" params={{ id: post.id }} className="hover:text-primary">
+              {post.title}
+            </Link>
+          </h2>
+        )}
         <p className={cn("mt-1 whitespace-pre-line px-1 text-sm leading-relaxed text-foreground/90", !detail && "line-clamp-3")}>
           {post.description}
         </p>
         {post.credits && (
           <p className="mt-2 px-1 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground/80">Créditos:</span> {post.credits}
+          </p>
+        )}
+        {post.region && (
+          <p className="mt-1 px-1 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground/80">Região:</span> {post.region}
           </p>
         )}
         {post.tags.length > 0 && (
@@ -201,21 +225,40 @@ export function PostCard({ post, detail = false }: { post: Post; detail?: boolea
       />
     </article>
   );
-}
+});
 
 export function PostGrid({ posts }: { posts: Post[] }) {
   return (
     <ul className="grid grid-cols-3 gap-0.5 sm:gap-2">
       {posts.map((p) => (
         <li key={p.id}>
-          <Link to="/post/$id" params={{ id: p.id }} className="group relative block aspect-square overflow-hidden bg-muted sm:rounded-md">
-            <img src={resolveImage(p.image)} alt={p.alt} loading="lazy" className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
-            <span className="absolute inset-0 flex items-center justify-center gap-1 bg-background/60 font-bold opacity-0 transition-opacity group-hover:opacity-100">
-              <Heart className="size-4 fill-foreground" /> {p.likes.length}
-            </span>
-          </Link>
+          <GridItem post={p} />
         </li>
       ))}
     </ul>
   );
 }
+
+const GridItem = memo(function GridItem({ post: p }: { post: Post }) {
+  const cover = postCover(p);
+  return (
+          <Link to="/post/$id" params={{ id: p.id }} className="group relative block aspect-square overflow-hidden bg-muted sm:rounded-md">
+            <MediaImage
+              src={cover.src}
+              alt={cover.alt}
+              width={cover.width}
+              height={cover.height}
+              sizes="(min-width: 640px) 320px, 33vw"
+              className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            {p.type !== "imagem" && (
+              <span className="absolute right-1.5 top-1.5 rounded bg-background/70 p-1" aria-label={p.type === "video" ? "Vídeo" : "Carrossel"}>
+                {p.type === "video" ? <Clapperboard className="size-3.5" /> : <GalleryHorizontal className="size-3.5" />}
+              </span>
+            )}
+            <span className="absolute inset-0 flex items-center justify-center gap-1 bg-background/60 font-bold opacity-0 transition-opacity group-hover:opacity-100">
+              <Heart className="size-4 fill-foreground" /> {p.likes.length}
+            </span>
+          </Link>
+  );
+});

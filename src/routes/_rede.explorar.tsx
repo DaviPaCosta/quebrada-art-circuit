@@ -6,10 +6,10 @@ import { ArtistCard } from "@/components/vm/ArtistCard";
 import { CategoryChips } from "@/components/vm/CategoryChips";
 import { PostGrid } from "@/components/vm/PostCard";
 import { PageTitle } from "@/components/vm/AppShell";
-import { isBlockedBetween, visiblePosts } from "@/lib/logic";
+import { isBlockedBetween, postCover, visiblePosts } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { CATEGORIES, type Category } from "@/lib/types";
-import { resolveImage } from "@/lib/images";
+import { MediaImage } from "@/components/vm/media/MediaImage";
 
 type Search = { q?: string | undefined; cat?: Category | undefined };
 
@@ -69,7 +69,10 @@ function Explore() {
     return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
   }, [state, meId]);
 
-  const highlight = visiblePosts(state, meId).slice().sort((a, b) => b.likes.length - a.likes.length)[0];
+  const highlight = useMemo(
+    () => visiblePosts(state, meId).sort((a, b) => b.likes.length - a.likes.length)[0],
+    [state, meId],
+  );
 
   const setSearch = (next: Search) => navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
 
@@ -100,7 +103,7 @@ function Explore() {
         <>
           {highlight && (
             <Link to="/post/$id" params={{ id: highlight.id }} className="group relative mx-4 mt-6 block overflow-hidden rounded-lg border border-border sm:mx-0">
-              <img src={resolveImage(highlight.image)} alt={highlight.alt} className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-80" />
+              <MediaImage {...postCover(highlight)} priority sizes="(min-width: 640px) 1024px, 100vw" className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-80" />
               <div className="bg-fade absolute inset-0" />
               <div className="absolute bottom-0 p-5">
                 <span className="tape text-sm">Destaque da semana</span>

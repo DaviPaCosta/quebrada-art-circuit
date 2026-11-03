@@ -12,5 +12,7 @@
 # Project rules
 - Prototype has no backend: all app data lives in a module store (`src/lib/store.ts`) persisted to localStorage; seed data in `src/lib/mock-data.ts`. Why: the school brief requires a database-free, simulated prototype.
 - State mutations are pure functions in `src/lib/logic.ts` (tested in `logic.test.ts`); `store.ts` only wraps them. Why: keeps rules testable.
-- Seed images are stored as `seed:<name>` and resolved via `resolveImage()`. Why: hashed asset URLs change between builds and would break persisted data.
+- Posts hold a `media[]` list (image/video, with width/height/alt); seed media live in `src/assets/seed` (jpg + 320/640/1024 webp, mp4 + poster) and are referenced as `seed:<name>`. Why: hashed asset URLs change between builds and would break persisted data.
+- User-uploaded photos/videos are stored as blobs in IndexedDB (`src/lib/media-db.ts`) and referenced as `idb:<key>`; render media only through `MediaImage`/`VideoPlayer`/`useMediaSrc`. Why: localStorage is too small for videos and carousels.
+- Persisted state is versioned; bump `version` and extend `migrateState()` in `logic.ts` whenever the shape changes. Why: users keep old data in their browser.
 - Signed-in screens live under the pathless `_rede` layout, which waits for store hydration and shows a sign-in prompt when logged out. Why: localStorage is unavailable during SSR.

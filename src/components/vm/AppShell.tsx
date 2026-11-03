@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Bookmark, BookOpen, CalendarDays, Compass, Home, PlusSquare, Search, Settings, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, PlusSquare, Search, Settings, ShieldCheck, User as UserIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
@@ -21,6 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const desktopNav = [
     { to: "/feed", label: "Início", icon: Home },
     { to: "/explorar", label: "Explorar", icon: Compass },
+    { to: "/reels", label: "Reels", icon: Clapperboard },
     { to: "/cultura", label: "Cultura", icon: BookOpen },
     { to: "/agenda", label: "Agenda", icon: CalendarDays },
   ] as const;
@@ -59,6 +60,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="ml-auto flex items-center gap-1">
             <Link to="/explorar" aria-label="Buscar" className="rounded-full p-2 text-foreground hover:bg-muted md:hidden">
               <Search className="size-5" />
+            </Link>
+            <Link to="/cultura" aria-label="Cultura" className="rounded-full p-2 text-foreground hover:bg-muted md:hidden">
+              <BookOpen className="size-5" />
             </Link>
             <Link to="/publicar" className="hidden items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90 md:inline-flex">
               <PlusSquare className="size-4" /> Publicar
@@ -99,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             { to: "/feed", label: "Início", icon: Home },
             { to: "/explorar", label: "Explorar", icon: Compass },
             { to: "/publicar", label: "Publicar", icon: PlusSquare, big: true },
-            { to: "/cultura", label: "Cultura", icon: BookOpen },
+            { to: "/reels", label: "Reels", icon: Clapperboard },
           ].map((item) => (
             <li key={item.to}>
               <Link

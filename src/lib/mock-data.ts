@@ -119,8 +119,8 @@ const posts: Post[] = [
   {
     id: "p1",
     authorId: "u1",
-    image: "seed:mural",
-    alt: "Mural colorido em laranja, roxo e verde com quatro rostos de pessoas negras de diferentes idades, e a frase 'Favela também é cidade'.",
+    type: "imagem",
+    media: [{ id: "m-mural", kind: "image", src: "seed:mural", width: 1024, height: 1280, alt: "Mural colorido em laranja, roxo e verde com quatro rostos de pessoas negras de diferentes idades, e a frase 'Favela também é cidade'." }],
     title: "Cores do Bairro",
     description:
       "Mural autorizado pela associação de moradores. Pintei quatro gerações da mesma família da rua: a avó que fundou a horta comunitária, a filha, o neto e a bisneta. Cada cor representa um tempo da nossa história.",
@@ -133,8 +133,8 @@ const posts: Post[] = [
   {
     id: "p2",
     authorId: "u2",
-    image: "seed:letras",
-    alt: "Painel branco em exposição com letras pretas altas e angulosas no estilo da pichação paulistana formando a frase 'Pichação é arte'.",
+    type: "imagem",
+    media: [{ id: "m-letras", kind: "image", src: "seed:letras", width: 1024, height: 1024, alt: "Painel branco em exposição com letras pretas altas e angulosas no estilo da pichação paulistana formando a frase 'Pichação é arte'." }],
     title: "Letras que contam histórias",
     description:
       "Análise visual: as letras retas e alongadas da pichação paulistana nasceram inspiradas em capas de discos de rock dos anos 80. Este painel foi feito para uma exposição, em suporte legal. Estudar a estética não é incentivar dano ao patrimônio.",
@@ -147,8 +147,8 @@ const posts: Post[] = [
   {
     id: "p3",
     authorId: "u3",
-    image: "seed:lambe",
-    alt: "Muro com vários cartazes lambe-lambe sobrepostos: retratos em preto e branco, uma mulher com turbante colorido e frases como 'A luta é todo dia' e 'Mais amor por favor'.",
+    type: "imagem",
+    media: [{ id: "m-lambe", kind: "image", src: "seed:lambe", width: 1024, height: 1280, alt: "Muro com vários cartazes lambe-lambe sobrepostos: retratos em preto e branco, uma mulher com turbante colorido e frases como 'A luta é todo dia' e 'Mais amor por favor'." }],
     title: "Lambe-lambe e memória",
     description:
       "Cartazes criados na disciplina de Artes e colados no muro de colagem livre do centro cultural. Os retratos são de pessoas que autorizaram o uso da imagem.",
@@ -161,8 +161,8 @@ const posts: Post[] = [
   {
     id: "p4",
     authorId: "u4",
-    image: "seed:poesia",
-    alt: "Poeta com cabelo black power recitando ao microfone embaixo de um viaduto, iluminado por luz alaranjada, com público ao redor.",
+    type: "imagem",
+    media: [{ id: "m-poesia", kind: "image", src: "seed:poesia", width: 1024, height: 1024, alt: "Poeta com cabelo black power recitando ao microfone embaixo de um viaduto, iluminado por luz alaranjada, com público ao redor." }],
     title: "Vozes da quebrada",
     description:
       "\"Meu bairro não cabe no mapa / cabe na boca de quem fala dele.\" Trecho que recitei no slam de sexta embaixo do viaduto. Obrigado a todo mundo que colou!",
@@ -175,8 +175,8 @@ const posts: Post[] = [
   {
     id: "p5",
     authorId: "u5",
-    image: "seed:danca",
-    alt: "B-boy de bandana fazendo um freeze apoiado em uma mão sobre papelão, com público e um grafite ao fundo no pôr do sol.",
+    type: "imagem",
+    media: [{ id: "m-danca", kind: "image", src: "seed:danca", width: 1024, height: 1280, alt: "B-boy de bandana fazendo um freeze apoiado em uma mão sobre papelão, com público e um grafite ao fundo no pôr do sol." }],
     title: "Freeze no papelão",
     description:
       "Roda de breaking na praça. Papelão no chão, caixa de som e a comunidade em volta. Sábado tem oficina gratuita, cola!",
@@ -189,8 +189,8 @@ const posts: Post[] = [
   {
     id: "p6",
     authorId: "u1",
-    image: "seed:grafite",
-    alt: "Grafite wildstyle com letras 3D em roxo, laranja e verde-lima num muro de grafite livre, com latas de spray no chão.",
+    type: "imagem",
+    media: [{ id: "m-grafite", kind: "image", src: "seed:grafite", width: 1024, height: 1024, alt: "Grafite wildstyle com letras 3D em roxo, laranja e verde-lima num muro de grafite livre, com latas de spray no chão." }],
     title: "Wildstyle no muro livre",
     description:
       "Peça feita no muro de grafite livre do parque, onde a prefeitura permite pintar. Testei a paleta do app: roxo, laranja e lima.",
@@ -203,8 +203,8 @@ const posts: Post[] = [
   {
     id: "p7",
     authorId: "u6",
-    image: "seed:rap",
-    alt: "MC de boné cantando ao microfone na praça à noite, com DJ ao fundo, faixa 'Hip hop é comunidade' e público com as mãos para o alto.",
+    type: "imagem",
+    media: [{ id: "m-rap", kind: "image", src: "seed:rap", width: 1024, height: 1024, alt: "MC de boné cantando ao microfone na praça à noite, com DJ ao fundo, faixa 'Hip hop é comunidade' e público com as mãos para o alto." }],
     title: "Nossa voz, nosso bairro",
     description:
       "Batalha de rima de aniversário do coletivo. Rap é crônica da quebrada e também é educação. Próxima edição na agenda!",
@@ -217,8 +217,8 @@ const posts: Post[] = [
   {
     id: "p8",
     authorId: "u7",
-    image: "seed:foto",
-    alt: "Foto em preto e branco de crianças soltando pipa numa laje, com a favela e o pôr do sol ao fundo. Rostos não identificáveis.",
+    type: "imagem",
+    media: [{ id: "m-foto", kind: "image", src: "seed:foto", width: 1024, height: 1280, alt: "Foto em preto e branco de crianças soltando pipa numa laje, com a favela e o pôr do sol ao fundo. Rostos não identificáveis." }],
     title: "O céu visto da laje",
     description:
       "Série sobre identidade e território. Fotografei de costas para preservar a identidade das crianças, com autorização das famílias.",
@@ -227,6 +227,118 @@ const posts: Post[] = [
     tags: ["fotografia", "território", "pipa"],
     likes: ["u1", "u3", "u4"],
     createdAt: "2026-10-22T18:00:00Z",
+  },
+  {
+    id: "p9",
+    authorId: "u1",
+    type: "video",
+    media: [
+      {
+        id: "m-reel-mural",
+        kind: "video",
+        src: "seed:reel-mural",
+        poster: "seed:reel-mural-poster",
+        width: 540,
+        height: 960,
+        duration: 9,
+        alt: "Vídeo vertical que aproxima lentamente um grafite colorido e depois mostra o mural 'Cores do Bairro' finalizado.",
+      },
+    ],
+    title: "Do muro livre ao mural",
+    description:
+      "Vídeo curto mostrando dois trabalhos meus: o wildstyle do muro livre e o mural da associação. Os dois foram pintados com autorização.",
+    category: "Muralismo",
+    credits: "Maria Cores",
+    tags: ["processo", "mural", "reels"],
+    likes: ["u3", "u7", "u8"],
+    createdAt: "2026-11-02T18:30:00Z",
+  },
+  {
+    id: "p10",
+    authorId: "u5",
+    type: "video",
+    media: [
+      {
+        id: "m-reel-danca",
+        kind: "video",
+        src: "seed:reel-danca",
+        poster: "seed:reel-danca-poster",
+        width: 540,
+        height: 960,
+        duration: 9,
+        alt: "Vídeo vertical da roda de break no papelão, seguido de um MC cantando no palco da praça.",
+      },
+    ],
+    title: "Roda de sábado",
+    description: "Break e rap na praça do bairro. Todo mundo que aparece autorizou a gravação.",
+    category: "Dança",
+    credits: "Rato B-Boy e MC Dandara",
+    tags: ["break", "rap", "reels"],
+    likes: ["u1", "u6"],
+    createdAt: "2026-11-01T12:00:00Z",
+  },
+  {
+    id: "p11",
+    authorId: "u4",
+    type: "video",
+    media: [
+      {
+        id: "m-reel-slam",
+        kind: "video",
+        src: "seed:reel-slam",
+        poster: "seed:reel-slam-poster",
+        width: 540,
+        height: 960,
+        duration: 9,
+        alt: "Vídeo vertical de um poeta recitando sob o viaduto, que se transforma no muro de cartazes lambe-lambe.",
+      },
+    ],
+    title: "Slam embaixo do viaduto",
+    description: "Trecho do sarau de outubro. A poesia passa pela voz e termina no muro de colagem.",
+    category: "Poesia",
+    credits: "Kauê Verso e Luana Lambe",
+    tags: ["slam", "sarau", "reels"],
+    likes: ["u3", "u6", "u8"],
+    createdAt: "2026-10-28T21:00:00Z",
+  },
+  {
+    id: "p12",
+    authorId: "u7",
+    type: "carrossel",
+    media: [
+      {
+        id: "m-car-foto",
+        kind: "image",
+        src: "seed:foto",
+        width: 1024,
+        height: 1280,
+        alt: "Céu ao entardecer visto de uma laje, com pipas no alto e casas de tijolo aparente.",
+      },
+      {
+        id: "m-car-letras",
+        kind: "image",
+        src: "seed:letras",
+        width: 1024,
+        height: 1024,
+        alt: "Painel de exposição com letras pretas altas no estilo da pichação paulistana.",
+      },
+      {
+        id: "m-car-lambe",
+        kind: "image",
+        src: "seed:lambe",
+        width: 1024,
+        height: 1280,
+        alt: "Muro de colagem livre com cartazes lambe-lambe de retratos e frases.",
+      },
+    ],
+    title: "Caminhada fotográfica",
+    description:
+      "Um dia andando pelo bairro com a câmera. Arraste para o lado para ver as três fotos. As obras são de artistas da rede e foram fotografadas em espaços abertos ao público.",
+    category: "Fotografia",
+    credits: "Fotos: Tati Laje · Obras: Jonas Letra e Luana Lambe",
+    tags: ["fotografia", "carrossel", "território"],
+    likes: ["u2", "u3"],
+    createdAt: "2026-10-26T10:00:00Z",
   },
 ];
 
@@ -313,7 +425,7 @@ export const EVENTS: CulturalEvent[] = [
 
 export function createSeedState(): AppState {
   return {
-    version: 1,
+    version: 2,
     sessionUserId: null,
     users: structuredClone(users),
     posts: structuredClone(posts),
