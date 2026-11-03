@@ -25,6 +25,7 @@ import { Route as RedeFeedRouteImport } from './routes/_rede.feed'
 import { Route as RedeModeracaoRouteImport } from './routes/_rede.moderacao'
 import { Route as RedeNotificacoesRouteImport } from './routes/_rede.notificacoes'
 import { Route as RedePublicarRouteImport } from './routes/_rede.publicar'
+import { Route as RedeReelsRouteImport } from './routes/_rede.reels'
 import { Route as RedeSalvosRouteImport } from './routes/_rede.salvos'
 import { Route as RedePostIdRouteImport } from './routes/_rede.post.$id'
 import { Route as RedeUUsernameRouteImport } from './routes/_rede.u.$username'
@@ -108,6 +109,11 @@ const RedePublicarRoute = RedePublicarRouteImport.update({
   path: '/publicar',
   getParentRoute: () => RedeRoute,
 } as any)
+const RedeReelsRoute = RedeReelsRouteImport.update({
+  id: '/reels',
+  path: '/reels',
+  getParentRoute: () => RedeRoute,
+} as any)
 const RedeSalvosRoute = RedeSalvosRouteImport.update({
   id: '/salvos',
   path: '/salvos',
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/moderacao': typeof RedeModeracaoRoute
   '/notificacoes': typeof RedeNotificacoesRoute
   '/publicar': typeof RedePublicarRoute
+  '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/moderacao': typeof RedeModeracaoRoute
   '/notificacoes': typeof RedeNotificacoesRoute
   '/publicar': typeof RedePublicarRoute
+  '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_rede/moderacao': typeof RedeModeracaoRoute
   '/_rede/notificacoes': typeof RedeNotificacoesRoute
   '/_rede/publicar': typeof RedePublicarRoute
+  '/_rede/reels': typeof RedeReelsRoute
   '/_rede/salvos': typeof RedeSalvosRoute
   '/_rede/post/$id': typeof RedePostIdRoute
   '/_rede/u/$username': typeof RedeUUsernameRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/moderacao'
     | '/notificacoes'
     | '/publicar'
+    | '/reels'
     | '/salvos'
     | '/post/$id'
     | '/u/$username'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/moderacao'
     | '/notificacoes'
     | '/publicar'
+    | '/reels'
     | '/salvos'
     | '/post/$id'
     | '/u/$username'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/_rede/moderacao'
     | '/_rede/notificacoes'
     | '/_rede/publicar'
+    | '/_rede/reels'
     | '/_rede/salvos'
     | '/_rede/post/$id'
     | '/_rede/u/$username'
@@ -373,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedePublicarRouteImport
       parentRoute: typeof RedeRoute
     }
+    '/_rede/reels': {
+      id: '/_rede/reels'
+      path: '/reels'
+      fullPath: '/reels'
+      preLoaderRoute: typeof RedeReelsRouteImport
+      parentRoute: typeof RedeRoute
+    }
     '/_rede/salvos': {
       id: '/_rede/salvos'
       path: '/salvos'
@@ -408,6 +427,7 @@ interface RedeRouteChildren {
   RedeModeracaoRoute: typeof RedeModeracaoRoute
   RedeNotificacoesRoute: typeof RedeNotificacoesRoute
   RedePublicarRoute: typeof RedePublicarRoute
+  RedeReelsRoute: typeof RedeReelsRoute
   RedeSalvosRoute: typeof RedeSalvosRoute
   RedePostIdRoute: typeof RedePostIdRoute
   RedeUUsernameRoute: typeof RedeUUsernameRoute
@@ -424,6 +444,7 @@ const RedeRouteChildren: RedeRouteChildren = {
   RedeModeracaoRoute: RedeModeracaoRoute,
   RedeNotificacoesRoute: RedeNotificacoesRoute,
   RedePublicarRoute: RedePublicarRoute,
+  RedeReelsRoute: RedeReelsRoute,
   RedeSalvosRoute: RedeSalvosRoute,
   RedePostIdRoute: RedePostIdRoute,
   RedeUUsernameRoute: RedeUUsernameRoute,
