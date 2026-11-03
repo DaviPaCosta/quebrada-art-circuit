@@ -6,7 +6,7 @@ import { ArtistCard } from "@/components/vm/ArtistCard";
 import { CategoryChips } from "@/components/vm/CategoryChips";
 import { PostGrid } from "@/components/vm/PostCard";
 import { PageTitle } from "@/components/vm/AppShell";
-import { isBlockedBetween, visiblePosts } from "@/lib/logic";
+import { isBlockedBetween, postCover, visiblePosts } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { MediaImage } from "@/components/vm/media/MediaImage";
