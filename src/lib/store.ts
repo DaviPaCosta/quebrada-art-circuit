@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { createSeedState } from "./mock-data";
 import * as L from "./logic";
 import { clearMedia, deleteMedia } from "./media-db";
-import type { AppState, ReportTarget, Settings, User } from "./types";
+import type { AppState, MediaItem, ReportTarget, Settings, User } from "./types";
 
 const STORAGE_KEY = "vozes-do-muro:v1";
 
@@ -39,6 +39,13 @@ export function hydrateStore() {
     if (raw) {
       const migrated = L.migrateState(JSON.parse(raw), createSeedState());
       if (migrated) state = migrated;
+    }
+    // Apaga do aparelho os stories que já venceram.
+    const expired = L.expiredStories(state);
+    if (expired.length) {
+      void deleteMedia(L.storyMediaRefs(expired));
+      const ids = new Set(expired.map((st) => st.id));
+      state = { ...state, stories: state.stories.filter((st) => !ids.has(st.id)) };
     }
   } catch {
     /* dados corrompidos: começa do zero */
@@ -130,6 +137,7 @@ export const actions = {
     const id = me();
     if (!id) return;
     void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.authorId === id)));
+    void deleteMedia(L.storyMediaRefs(state.stories.filter((st) => st.authorId === id)));
     set(L.deleteAccount(state, id));
   },
   createPost(data: L.NewPostData) {
@@ -148,6 +156,27 @@ export const actions = {
       posts: state.posts.filter((p) => !(p.id === postId && p.authorId === id)),
       comments: state.comments.filter((c) => c.postId !== postId),
     });
+  },
+  createStory(media: MediaItem, caption: string) {
+    const id = me();
+    if (!id) return null;
+    const r = L.createStory(state, id, media, caption);
+    set(r.state);
+    return r.id;
+  },
+  markStoryViewed(storyId: string) {
+    const id = me();
+    if (id) set(L.markStoryViewed(state, id, storyId));
+  },
+  reactToStory(storyId: string) {
+    const id = me();
+    if (id) set(L.reactToStory(state, id, storyId));
+  },
+  deleteStory(storyId: string) {
+    const id = me();
+    if (!id) return;
+    void deleteMedia(L.storyMediaRefs(state.stories.filter((st) => st.id === storyId && st.authorId === id)));
+    set(L.deleteStory(state, id, storyId));
   },
   toggleLike(postId: string) {
     const id = me();

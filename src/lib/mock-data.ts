@@ -432,13 +432,13 @@ function seedStories(): Story[] {
     { id: "s-seed-2", authorId: "u1", createdAt: ago(90), caption: "Finalizado! Muro autorizado pela associação 🧡", viewers: [], reactions: [], media: img("ms2", "mural", 1024, 1280, "Mural finalizado com rostos em laranja, roxo e verde.") },
     {
       id: "s-seed-3", authorId: "u4", createdAt: ago(45), caption: "Hoje tem sarau. Bora?", viewers: [], reactions: [],
-      media: { id: "ms3", kind: "video", src: "seed:reel-slam", poster: "seed:reel-slam-poster", width: 540, height: 960, duration: 8, alt: "Poeta recitando no microfone em um sarau." },
+      media: { id: "ms3", kind: "video", src: "seed:reel-slam", poster: "seed:reel-slam-poster", width: 540, height: 960, duration: 9, alt: "Poeta recitando no microfone em um sarau." },
     },
     { id: "s-seed-4", authorId: "u2", createdAt: ago(200), caption: "Estudando letras pra exposição", viewers: [], reactions: [], media: img("ms4", "letras", 1024, 1024, "Painel com letras angulosas no estilo da caligrafia urbana paulistana.") },
     { id: "s-seed-5", authorId: "u3", createdAt: ago(600), caption: "Cola pronta, papel na mão", viewers: [], reactions: [], media: img("ms5", "lambe", 1024, 1280, "Muro com vários cartazes lambe-lambe.") },
     {
       id: "s-seed-6", authorId: "u5", createdAt: ago(30), caption: "Treino de sábado 🔥", viewers: [], reactions: [],
-      media: { id: "ms6", kind: "video", src: "seed:reel-danca", poster: "seed:reel-danca-poster", width: 540, height: 960, duration: 8, alt: "B-boy treinando passos de breaking." },
+      media: { id: "ms6", kind: "video", src: "seed:reel-danca", poster: "seed:reel-danca-poster", width: 540, height: 960, duration: 9, alt: "B-boy treinando passos de breaking." },
     },
   ];
 }
