@@ -252,8 +252,5 @@ const GridItem = memo(function GridItem({ post: p }: { post: Post }) {
               <Heart className="size-4 fill-foreground" /> {p.likes.length}
             </span>
           </Link>
-        </li>
-      ))}
-    </ul>
   );
-}
+});
