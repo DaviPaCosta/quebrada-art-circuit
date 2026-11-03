@@ -1,10 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Clapperboard } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArtistCard } from "@/components/vm/ArtistCard";
 import { PostCard } from "@/components/vm/PostCard";
-import { UserAvatar } from "@/components/vm/UserAvatar";
+import { StoryBar } from "@/components/vm/stories/StoryBar";
 import { visiblePosts, isBlockedBetween } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -55,29 +54,11 @@ function Feed() {
   const suggestions = state.users.filter(
     (u) => u.id !== meId && !following.includes(u.id) && !isBlockedBetween(state, meId, u.id),
   );
-  const stories = state.users.filter((u) => following.includes(u.id));
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="mx-auto w-full max-w-xl">
-        {stories.length > 0 && (
-          <div className="scrollbar-none flex gap-4 overflow-x-auto px-4 pt-4 sm:px-0">
-            <Link to="/reels" className="flex w-16 shrink-0 flex-col items-center gap-1">
-              <span className="flex size-[60px] items-center justify-center rounded-full border-2 border-primary bg-card text-primary">
-                <Clapperboard className="size-6" />
-              </span>
-              <span className="w-full truncate text-center text-[11px] font-semibold text-primary">Reels</span>
-            </Link>
-            {stories.map((u) => (
-              <Link key={u.id} to="/u/$username" params={{ username: u.username }} className="flex w-16 shrink-0 flex-col items-center gap-1">
-                <span className="rounded-full bg-[image:var(--gradient-spray)] p-0.5">
-                  <UserAvatar user={u} size="md" className="size-14" />
-                </span>
-                <span className="w-full truncate text-center text-[11px] text-muted-foreground">{u.username}</span>
-              </Link>
-            ))}
-          </div>
-        )}
+        <StoryBar />
 
         <div role="tablist" className="sticky top-14 z-20 mt-3 flex border-b border-border bg-background/95 backdrop-blur">
           {(["todos", "seguindo"] as const).map((t) => (
