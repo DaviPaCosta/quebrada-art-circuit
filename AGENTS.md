@@ -17,3 +17,5 @@
 - Persisted state is versioned; bump `version` and extend `migrateState()` in `logic.ts` whenever the shape changes. Why: users keep old data in their browser.
 - Signed-in screens live under the pathless `_rede` layout, which waits for store hydration and shows a sign-in prompt when logged out. Why: localStorage is unavailable during SSR.
 - Stories live in `state.stories` and expire after 24h via `isStoryActive`; seed stories (`s-seed-*`) get fresh timestamps on every load in `migrateState`. Why: the demo must never show an empty stories row.
+- Resolve account mentions from current usernames with shared input/render controls and pure notification rules; replies reference a root comment and comments carry likes. Why: interactions stay consistent across posts and comments without a backend.
+- Profile customization stores optional cover and pinned-post references plus the existing semantic color key; validate pinned ownership in pure logic. Why: older accounts keep working and users cannot feature someone else's work as their own.

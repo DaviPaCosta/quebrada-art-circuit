@@ -19,6 +19,7 @@ import { CategoryTag } from "./CategoryChips";
 import { ReportDialog } from "./ReportDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { MediaImage } from "./media/MediaImage";
+import { MentionText } from "./Mentions";
 import { MediaViewer } from "./media/MediaViewer";
 
 export const PostCard = memo(function PostCard({
@@ -68,7 +69,7 @@ export const PostCard = memo(function PostCard({
   };
 
   return (
-    <article className="animate-spray-in border-b border-border bg-card sm:rounded-lg sm:border">
+    <article className="border-b border-border bg-card sm:rounded-lg sm:border">
       <header className="flex items-center gap-3 px-3 py-2.5">
         <Link to="/u/$username" params={{ username: author?.username ?? "" }} className="flex min-w-0 items-center gap-3">
           <UserAvatar user={author} />
@@ -168,11 +169,11 @@ export const PostCard = memo(function PostCard({
           </h2>
         )}
         <p className={cn("mt-1 whitespace-pre-line px-1 text-sm leading-relaxed text-foreground/90", !detail && "line-clamp-3")}>
-          {post.description}
+          <MentionText text={post.description} />
         </p>
         {post.credits && (
           <p className="mt-2 px-1 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground/80">Créditos:</span> {post.credits}
+            <span className="font-semibold text-foreground/80">Créditos:</span> <MentionText text={post.credits} />
           </p>
         )}
         {post.region && (

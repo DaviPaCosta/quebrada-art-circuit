@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionInput } from "@/components/vm/Mentions";
 import { PageTitle } from "@/components/vm/AppShell";
 import { FieldError } from "@/components/vm/AuthLayout";
 import { ConfirmDialog } from "@/components/vm/ConfirmDialog";
@@ -238,7 +238,7 @@ function Publish() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="desc">Legenda e contexto</Label>
-              <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} rows={4} placeholder="Conte a história da obra, o contexto e a técnica." />
+              <MentionInput multiline id="desc" value={description} onChange={setDescription} maxLength={1000} placeholder="Conte a história da obra, o contexto e a técnica." />
             </div>
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">

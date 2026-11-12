@@ -39,7 +39,7 @@ export function signUp(
     name: input.name.trim(),
     email,
     password: input.password,
-    color: colors[s.users.length % colors.length]!,
+    color: colors[s.users.length % colors.length] ?? "spray",
     bio: "",
     bairro: "",
     showBairro: false,
@@ -85,28 +85,58 @@ export function toggleLike(s: AppState, userId: string, postId: string): AppStat
   return { ...s, posts, notifications };
 }
 
-export function addComment(s: AppState, userId: string, postId: string, text: string): AppState {
-  const clean = text.trim();
-  const post = s.posts.find((p) => p.id === postId);
-  if (!clean || !post) return s;
-  const comment = { id: uid("c"), postId, authorId: userId, text: clean.slice(0, 500), createdAt: now() };
-  const notifications =
-    post.authorId !== userId
-      ? [
-          {
-            id: uid("n"),
-            userId: post.authorId,
-            actorId: userId,
-            type: "comment" as const,
-            postId,
-            text: clean.slice(0, 80),
-            createdAt: now(),
-            read: false,
-          },
-          ...s.notifications,
-        ]
-      : s.notifications;
-  return { ...s, comments: [...s.comments, comment], notifications };
+/** Contas existentes mencionadas, sem repetir, sem auto-menção nem bloqueados. */
+export function mentionedUsers(s: AppState, actorId: string, text: string): User[] {
+  const names = new Set([...text.matchAll(/(?:^|[^a-z0-9._@])@([a-z0-9._]{3,20})(?![a-z0-9._])/gi)].map((m) => normalizeUsername(m[1] ?? "")));
+  return s.users.filter((u) => names.has(u.username) && u.id !== actorId && !isBlockedBetween(s, actorId, u.id));
+}
+
+function mentionNotifications(s: AppState, actorId: string, postId: string, text: string) {
+  return mentionedUsers(s, actorId, text).map((u) => ({ id: uid("n"), userId: u.id, actorId, postId, type: "mention" as const, text: text.slice(0, 80), createdAt: now(), read: false }));
+}
+
+export function addComment(s: AppState, userId: string, postId: string, text: string, parentId?: string): AppState {
+  const clean = text.trim().slice(0, 500);
+  const post = s.posts.find((p) => p.id === postId && !p.removed);
+  if (!clean || !post || isBlockedBetween(s, userId, post.authorId)) return s;
+  const parent = parentId ? s.comments.find((c) => c.id === parentId && c.postId === postId) : undefined;
+  if (parentId && (!parent || isBlockedBetween(s, userId, parent.authorId))) return s;
+  const comment = { id: uid("c"), postId, authorId: userId, text: clean, parentId: parent?.parentId ?? parent?.id, likes: [], createdAt: now() };
+  const notices: AppState["notifications"] = mentionNotifications(s, userId, postId, clean);
+  const recipients = new Map<string, "reply" | "comment">();
+  if (post.authorId !== userId) recipients.set(post.authorId, "comment");
+  if (parent && parent.authorId !== userId) recipients.set(parent.authorId, "reply");
+  for (const [recipient, type] of recipients) {
+    if (isBlockedBetween(s, userId, recipient)) continue;
+    notices.push({ id: uid("n"), userId: recipient, actorId: userId, postId, type, text: clean.slice(0, 80), createdAt: now(), read: false });
+  }
+  return { ...s, comments: [...s.comments, comment], notifications: [...notices, ...s.notifications] };
+}
+
+export function toggleCommentLike(s: AppState, userId: string, commentId: string): AppState {
+  const c = s.comments.find((x) => x.id === commentId);
+  const post = c && s.posts.find((p) => p.id === c.postId && !p.removed);
+  if (!c || !post || isBlockedBetween(s, userId, c.authorId) || isBlockedBetween(s, userId, post.authorId)) return s;
+  const liked = c.likes.includes(userId);
+  return { ...s, comments: s.comments.map((x) => x.id === commentId ? { ...x, likes: liked ? x.likes.filter((id) => id !== userId) : [...x.likes, userId] } : x), notifications: !liked && c.authorId !== userId ? [{ id: uid("n"), userId: c.authorId, actorId: userId, type: "commentLike", postId: c.postId, createdAt: now(), read: false }, ...s.notifications] : s.notifications };
+}
+
+export type ProfilePatch = Partial<Pick<User, "name" | "username" | "bio" | "bairro" | "showBairro" | "styles" | "avatar" | "cover" | "color" | "pinnedPostId">>;
+export function updateProfile(s: AppState, userId: string, patch: ProfilePatch): Result {
+  if (!s.users.some((u) => u.id === userId)) return { ok: false, error: "Entre na sua conta." };
+  const clean = { ...patch };
+  if (clean.username !== undefined) {
+    clean.username = normalizeUsername(clean.username);
+    if (!isValidUsername(clean.username)) return { ok: false, error: "Usuário deve ter 3 a 20 caracteres: letras, números, ponto ou _." };
+    if (s.users.some((u) => u.id !== userId && u.username === clean.username)) return { ok: false, error: "Esse nome de usuário já está em uso." };
+  }
+  if (clean.name !== undefined && !clean.name.trim()) return { ok: false, error: "Informe seu nome." };
+  if (clean.pinnedPostId && !s.posts.some((p) => p.id === clean.pinnedPostId && p.authorId === userId && !p.removed)) return { ok: false, error: "Escolha uma obra sua para destacar." };
+  return { ok: true, state: { ...s, users: s.users.map((u) => u.id === userId ? { ...u, ...clean } : u) } };
+}
+
+export function mostLikedPosts(s: AppState, viewerId: string | null) {
+  return visiblePosts(s, viewerId).sort((a, b) => b.likes.length - a.likes.length || b.createdAt.localeCompare(a.createdAt));
 }
 
 function toggleIn(map: Record<string, string[]>, key: string, value: string) {
@@ -189,7 +219,7 @@ export function createPost(s: AppState, userId: string, data: NewPostData): { st
     media,
     type: postTypeFor(media),
   };
-  return { id, state: { ...s, posts: [post, ...s.posts] } };
+  return { id, state: { ...s, posts: [post, ...s.posts], notifications: [...mentionNotifications(s, userId, id, `${data.description} ${data.credits}`), ...s.notifications] } };
 }
 
 /* ---------- Fotos e vídeos ---------- */
@@ -268,6 +298,9 @@ export function migrateState(raw: unknown, seed: AppState): AppState | null {
     // v2 → v3: chegam os stories.
     r = { ...r, version: 3, stories: seed.stories };
   }
+  if (r.version === 3) {
+    r = { ...r, version: 4, comments: (r.comments ?? seed.comments).map((c) => ({ ...c, likes: c.likes ?? [] })) };
+  }
   if (r.version !== seed.version) return null;
   return refreshSeedStories({ ...seed, ...(r as AppState) }, seed);
 }
@@ -289,7 +322,7 @@ export function refreshSeedStories(s: AppState, seed: AppState): AppState {
   if (!s.stories.some((st) => fresh.has(st.id))) return s;
   return {
     ...s,
-    stories: s.stories.map((st) => (fresh.has(st.id) ? { ...st, createdAt: fresh.get(st.id)! } : st)),
+    stories: s.stories.map((st) => (fresh.has(st.id) ? { ...st, createdAt: fresh.get(st.id) ?? st.createdAt } : st)),
   };
 }
 
@@ -332,7 +365,7 @@ export function storyGroups(s: Pick<AppState, "stories" | "follows" | "blocks" |
     if (a.user.id === viewerId) return -1;
     if (b.user.id === viewerId) return 1;
     if (a.seen !== b.seen) return a.seen ? 1 : -1;
-    return b.stories.at(-1)!.createdAt.localeCompare(a.stories.at(-1)!.createdAt);
+    return (b.stories.at(-1)?.createdAt ?? "").localeCompare(a.stories.at(-1)?.createdAt ?? "");
   });
 }
 
@@ -438,7 +471,7 @@ export function deleteAccount(s: AppState, userId: string): AppState {
     posts: s.posts
       .filter((p) => p.authorId !== userId)
       .map((p) => ({ ...p, likes: p.likes.filter((l) => l !== userId) })),
-    comments: s.comments.filter((c) => c.authorId !== userId),
+    comments: s.comments.filter((c) => c.authorId !== userId).map((c) => ({ ...c, likes: c.likes.filter((id) => id !== userId), parentId: s.comments.some((p) => p.id === c.parentId && p.authorId === userId) ? undefined : c.parentId })),
     stories: s.stories
       .filter((st) => st.authorId !== userId)
       .map((st) => ({ ...st, viewers: st.viewers.filter((v) => v !== userId), reactions: st.reactions.filter((v) => v !== userId) })),

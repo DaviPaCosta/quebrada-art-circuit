@@ -119,19 +119,12 @@ export const actions = {
   emailExists(email: string) {
     return state.users.some((u) => u.email.toLowerCase() === email.trim().toLowerCase());
   },
-  updateProfile(patch: Partial<Pick<User, "name" | "username" | "bio" | "bairro" | "showBairro" | "styles" | "avatar">>) {
+  updateProfile(patch: L.ProfilePatch) {
     const id = me();
     if (!id) return { ok: false as const, error: "Entre na sua conta." };
-    if (patch.username !== undefined) {
-      const u = L.normalizeUsername(patch.username);
-      if (!L.isValidUsername(u))
-        return { ok: false as const, error: "Usuário deve ter 3 a 20 caracteres: letras, números, ponto ou _." };
-      if (state.users.some((x) => x.username === u && x.id !== id))
-        return { ok: false as const, error: "Esse nome de usuário já está em uso." };
-      patch.username = u;
-    }
-    set({ ...state, users: state.users.map((u) => (u.id === id ? { ...u, ...patch } : u)) });
-    return { ok: true as const };
+    const r = L.updateProfile(state, id, patch);
+    if (r.ok) set(r.state);
+    return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
   },
   deleteAccount() {
     const id = me();
@@ -182,16 +175,20 @@ export const actions = {
     const id = me();
     if (id) set(L.toggleLike(state, id, postId));
   },
-  addComment(postId: string, text: string) {
+  addComment(postId: string, text: string, parentId?: string) {
     const id = me();
-    if (id) set(L.addComment(state, id, postId, text));
+    if (id) set(L.addComment(state, id, postId, text, parentId));
+  },
+  toggleCommentLike(commentId: string) {
+    const id = me();
+    if (id) set(L.toggleCommentLike(state, id, commentId));
   },
   deleteComment(commentId: string) {
     const id = me();
     const c = state.comments.find((x) => x.id === commentId);
     const post = c && state.posts.find((p) => p.id === c.postId);
     if (!c || (c.authorId !== id && post?.authorId !== id)) return;
-    set({ ...state, comments: state.comments.filter((x) => x.id !== commentId) });
+    set({ ...state, comments: state.comments.filter((x) => x.id !== commentId && x.parentId !== commentId) });
   },
   toggleSave(postId: string) {
     const id = me();

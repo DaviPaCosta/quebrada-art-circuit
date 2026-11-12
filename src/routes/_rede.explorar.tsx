@@ -1,20 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Heart, TrendingUp, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ArtistCard } from "@/components/vm/ArtistCard";
 import { CategoryChips } from "@/components/vm/CategoryChips";
 import { PostGrid } from "@/components/vm/PostCard";
 import { PageTitle } from "@/components/vm/AppShell";
-import { isBlockedBetween, postCover, visiblePosts } from "@/lib/logic";
+import { isBlockedBetween, postCover, visiblePosts, mostLikedPosts } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { MediaImage } from "@/components/vm/media/MediaImage";
 
-type Search = { q?: string | undefined; cat?: Category | undefined };
+type Search = { q?: string | undefined; cat?: Category | undefined; sort?: "likes" | undefined };
 
 export const Route = createFileRoute("/_rede/explorar")({
   validateSearch: (s: Record<string, unknown>): Search => ({
+    sort: s["sort"] === "likes" ? "likes" : undefined,
     q: typeof s["q"] === "string" && s["q"] ? s["q"] : undefined,
     cat: CATEGORIES.includes(s["cat"] as Category) ? (s["cat"] as Category) : undefined,
   }),
@@ -32,16 +35,16 @@ export const Route = createFileRoute("/_rede/explorar")({
 });
 
 function Explore() {
-  const { q = "", cat } = Route.useSearch();
+  const { q = "", cat, sort } = Route.useSearch();
   const navigate = Route.useNavigate();
   const state = useAppState((s) => s);
-  const meId = state.sessionUserId!;
+  const meId = state.sessionUserId ?? "";
 
   const term = q.trim().toLowerCase();
   const tagTerm = term.startsWith("#") ? term.slice(1) : null;
 
   const posts = useMemo(() => {
-    return visiblePosts(state, meId).filter((p) => {
+    return (sort === "likes" ? mostLikedPosts(state, meId) : visiblePosts(state, meId)).filter((p) => {
       if (cat && p.category !== cat) return false;
       if (!term) return true;
       if (tagTerm !== null) return p.tags.some((t) => t.includes(tagTerm));
@@ -51,7 +54,7 @@ function Explore() {
         .toLowerCase()
         .includes(term);
     });
-  }, [state, meId, cat, term, tagTerm]);
+  }, [state, meId, cat, term, tagTerm, sort]);
 
   const artists = useMemo(() => {
     if (!term || tagTerm !== null) return [];
@@ -106,8 +109,8 @@ function Explore() {
               <MediaImage {...postCover(highlight)} priority sizes="(min-width: 640px) 1024px, 100vw" className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-80" />
               <div className="bg-fade absolute inset-0" />
               <div className="absolute bottom-0 p-5">
-                <span className="tape text-sm">Destaque da semana</span>
-                <h2 className="mt-3 text-4xl">{highlight.title}</h2>
+                <span className="tape text-sm">Mais curtida</span>
+                <h2 className="mt-3 text-4xl">{highlight.title}</h2><p className="mt-2 flex items-center gap-2 text-sm"><Heart className="size-4 fill-primary text-primary" />{highlight.likes.length} curtidas</p>
               </div>
             </Link>
           )}
@@ -136,7 +139,11 @@ function Explore() {
       )}
 
       <section className="mt-8">
-        <h2 className="px-4 text-2xl sm:px-0">{term || cat ? `Obras (${posts.length})` : "Todas as obras"}</h2>
+        <div className="mb-4 flex gap-2 px-4 sm:px-0" role="group" aria-label="Ordenar obras">
+          <Button variant={sort !== "likes" ? "following" : "ghost"} aria-pressed={sort !== "likes"} onClick={() => setSearch({ sort: undefined })}><Clock />Recentes</Button>
+          <Button variant={sort === "likes" ? "lime" : "ghost"} aria-pressed={sort === "likes"} onClick={() => setSearch({ sort: "likes" })}><TrendingUp />Mais curtidos</Button>
+        </div>
+        <h2 className="px-4 text-2xl sm:px-0">{term || cat ? `Obras (${posts.length})` : sort === "likes" ? "Posts mais curtidos" : "Todas as obras"}</h2>
         <div className="mt-3">
           {posts.length ? (
             <PostGrid posts={posts} />

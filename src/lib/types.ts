@@ -22,6 +22,8 @@ export interface User {
   /** Protótipo escolar: senha guardada só no aparelho, sem servidor. */
   password: string;
   avatar?: string | undefined;
+  cover?: string | undefined;
+  pinnedPostId?: string | undefined;
   color: "spray" | "violet" | "lime" | "sand";
   bio: string;
   bairro: string;
@@ -84,10 +86,12 @@ export interface Comment {
   postId: string;
   authorId: string;
   text: string;
+  parentId?: string | undefined;
+  likes: string[];
   createdAt: string;
 }
 
-export type NotificationType = "like" | "comment" | "follow" | "moderacao" | "story";
+export type NotificationType = "like" | "comment" | "follow" | "moderacao" | "story" | "mention" | "reply" | "commentLike";
 
 export interface AppNotification {
   id: string;

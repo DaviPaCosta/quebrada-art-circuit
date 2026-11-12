@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Flag, Grid3x3, MapPin, MoreHorizontal, Settings, ShieldOff } from "lucide-react";
+import { Flag, Grid3x3, MapPin, MoreHorizontal, Settings, ShieldOff, Pin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,10 @@ import { ConfirmDialog } from "@/components/vm/ConfirmDialog";
 import { PostGrid } from "@/components/vm/PostCard";
 import { ReportDialog } from "@/components/vm/ReportDialog";
 import { UserAvatar } from "@/components/vm/UserAvatar";
-import { isBlockedBetween, visiblePosts } from "@/lib/logic";
+import { isBlockedBetween, visiblePosts, postCover } from "@/lib/logic";
+import { MediaImage } from "@/components/vm/media/MediaImage";
+import { MentionText } from "@/components/vm/Mentions";
+import { cn } from "@/lib/utils";
 import { actions, useAppState } from "@/lib/store";
 
 export const Route = createFileRoute("/_rede/u/$username")({
@@ -31,7 +34,7 @@ function Profile() {
   const { username } = Route.useParams();
   const navigate = useNavigate();
   const state = useAppState((s) => s);
-  const meId = state.sessionUserId!;
+  const meId = state.sessionUserId ?? "";
   const user = state.users.find((u) => u.username === username);
   const [list, setList] = useState<"seguidores" | "seguindo" | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
@@ -52,6 +55,8 @@ function Profile() {
   const iBlocked = (state.blocks[meId] ?? []).includes(user.id);
   const blocked = isBlockedBetween(state, meId, user.id);
   const posts = blocked ? [] : visiblePosts(state, meId).filter((p) => p.authorId === user.id);
+  const pinned = posts.find((p) => p.id === user.pinnedPostId);
+  const accent = { spray: "border-primary", violet: "border-secondary", lime: "border-accent", sand: "border-foreground" }[user.color];
   const followers = state.users.filter((u) => (state.follows[u.id] ?? []).includes(user.id));
   const following = state.users.filter((u) => (state.follows[user.id] ?? []).includes(u.id));
   const likes = posts.reduce((n, p) => n + p.likes.length, 0);
@@ -59,8 +64,9 @@ function Profile() {
   return (
     <div className="pb-10">
       <section className="px-4 pt-6 sm:px-0">
+        {!blocked && <div className={cn("mb-5 h-32 overflow-hidden border-b-8 bg-muted sm:h-44", accent)}>{user.cover && <MediaImage src={user.cover} alt={`Capa de ${user.name}`} width={1200} height={400} priority className="size-full object-cover" />}</div>}
         <div className="flex items-center gap-5">
-          <UserAvatar user={user} size="xl" className="ring-4 ring-primary" />
+          <UserAvatar user={user} size="xl" className={cn("border-4", accent)} />
           <div className="grid flex-1 grid-cols-3 text-center">
             <Stat n={posts.length} label="obras" />
             <button onClick={() => setList("seguidores")} className="hover:text-primary">
@@ -77,7 +83,7 @@ function Profile() {
             @{user.username}
             {user.role === "moderador" && <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">moderação</span>}
           </p>
-          {user.bio && <p className="mt-2 max-w-prose whitespace-pre-line text-sm">{user.bio}</p>}
+          {user.bio && <p className="mt-2 max-w-prose whitespace-pre-line text-sm"><MentionText text={user.bio} /></p>}
           {user.showBairro && user.bairro && (
             <p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="size-4" /> {user.bairro}
@@ -136,6 +142,7 @@ function Profile() {
         </div>
       </section>
 
+      {pinned && <section className="mt-6 px-4 sm:px-0"><h2 className="mb-3 flex items-center gap-2 text-lg"><Pin className="size-4 text-accent" />Obra em destaque</h2><Link to="/post/$id" params={{ id: pinned.id }} className="flex items-center gap-4 border-y border-border py-3"><MediaImage {...postCover(pinned)} className="size-20 rounded-md object-cover" /><span className="min-w-0"><span className="block break-words font-bold">{pinned.title}</span><span className="text-sm text-muted-foreground">{pinned.likes.length} curtidas · {pinned.category}</span></span></Link></section>}
       <div className="mt-6 flex items-center justify-center gap-2 border-t border-border py-3 text-sm font-bold uppercase tracking-wider">
         <Grid3x3 className="size-4" /> Galeria
       </div>

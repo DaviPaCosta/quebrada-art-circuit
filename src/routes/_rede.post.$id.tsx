@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { ArrowLeft, Flag, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Flag, Send, Trash2, Heart, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { MentionInput, MentionText } from "@/components/vm/Mentions";
 import { PostCard } from "@/components/vm/PostCard";
 import { ReportDialog } from "@/components/vm/ReportDialog";
 import { UserAvatar } from "@/components/vm/UserAvatar";
@@ -35,6 +35,7 @@ function PostDetail() {
     .filter((c) => c.postId === id)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const [text, setText] = useState("");
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -56,15 +57,16 @@ function PostDetail() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-    actions.addComment(post.id, text);
+    actions.addComment(post.id, text, replyTo?.id);
+    setReplyTo(null);
     setText("");
   };
 
   return (
     <div className="mx-auto max-w-xl pb-10 sm:pt-4">
-      <button onClick={() => router.history.back()} className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground sm:px-0">
+      <Button variant="ghost" onClick={() => router.history.back()} className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-muted-foreground hover:text-foreground sm:px-0">
         <ArrowLeft className="size-4" /> Voltar
-      </button>
+      </Button>
       <PostCard post={post} detail />
 
       <section aria-labelledby="comentarios" className="mt-4 px-4 sm:px-0">
@@ -72,17 +74,18 @@ function PostDetail() {
           Comentários ({comments.length})
         </h2>
         <ul className="mt-4 space-y-4">
-          {comments.map((c) => (
-            <CommentItem key={c.id} comment={c} postAuthorId={post.authorId} meId={me?.id ?? ""} />
+          {comments.filter((c) => !c.parentId || !comments.some((p) => p.id === c.parentId)).map((c) => (
+            <li key={c.id}><ul className="space-y-3"><CommentItem comment={c} postAuthorId={post.authorId} meId={me?.id ?? ""} onReply={(comment) => { setReplyTo(comment); inputRef.current?.focus(); }} />{comments.filter((r) => r.parentId === c.id).map((r) => <div key={r.id} className="ml-7 border-l border-border pl-3"><CommentItem comment={r} postAuthorId={post.authorId} meId={me?.id ?? ""} onReply={(comment) => { setReplyTo(comment); inputRef.current?.focus(); }} /></div>)}</ul></li>
           ))}
           {comments.length === 0 && <li className="text-sm text-muted-foreground">Seja a primeira pessoa a comentar.</li>}
         </ul>
+        {replyTo && <div className="mt-4 flex items-center justify-between border-l-2 border-accent bg-muted px-3 py-2 text-sm"><span className="min-w-0 truncate">Respondendo: {replyTo.text}</span><Button variant="ghost" size="icon" aria-label="Cancelar resposta" onClick={() => setReplyTo(null)}><X /></Button></div>}
         <form id="comentar" onSubmit={submit} className="sticky bottom-20 mt-6 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 pl-2 md:bottom-4">
           <UserAvatar user={me} size="sm" />
-          <Input
+          <MentionInput
             ref={inputRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={setText}
             placeholder="Escreva um comentário respeitoso..."
             aria-label="Escreva um comentário"
             maxLength={500}
@@ -97,7 +100,7 @@ function PostDetail() {
   );
 }
 
-function CommentItem({ comment, postAuthorId, meId }: { comment: Comment; postAuthorId: string; meId: string }) {
+function CommentItem({ comment, postAuthorId, meId, onReply }: { comment: Comment; postAuthorId: string; meId: string; onReply: (comment: Comment) => void }) {
   const author = useAppState((s) => s.users.find((u) => u.id === comment.authorId));
   const hidden = useAppState((s) => isBlockedBetween(s, meId, comment.authorId));
   const [reportOpen, setReportOpen] = useState(false);
@@ -113,10 +116,11 @@ function CommentItem({ comment, postAuthorId, meId }: { comment: Comment; postAu
           <Link to="/u/$username" params={{ username: author?.username ?? "" }} className="font-bold hover:underline">
             {author?.username ?? "conta removida"}
           </Link>{" "}
-          <span className="text-foreground/90">{comment.text}</span>
+          <span className="break-words text-foreground/90"><MentionText text={comment.text} /></span>
         </p>
-        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span>{timeAgo(comment.createdAt)}</span>
+          <Button variant="ghost" size="sm" className="h-7 px-1 text-xs" onClick={() => onReply(comment)}>Responder</Button>
           {comment.authorId !== meId && (
             <button onClick={() => setReportOpen(true)} className="flex items-center gap-1 hover:text-foreground">
               <Flag className="size-3" /> Denunciar
@@ -129,6 +133,7 @@ function CommentItem({ comment, postAuthorId, meId }: { comment: Comment; postAu
           )}
         </div>
       </div>
+      <Button variant="ghost" size="sm" aria-label="Curtir comentário" aria-pressed={comment.likes.includes(meId)} onClick={() => actions.toggleCommentLike(comment.id)} className="shrink-0 px-1"><Heart className={comment.likes.includes(meId) ? "fill-primary text-primary" : "text-muted-foreground"} /><span>{comment.likes.length}</span></Button>
       <ReportDialog open={reportOpen} onOpenChange={setReportOpen} targetType="comment" targetId={comment.id} label="comentário" />
     </li>
   );

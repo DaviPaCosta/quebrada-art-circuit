@@ -342,7 +342,7 @@ const posts: Post[] = [
   },
 ];
 
-const comments: Comment[] = [
+const comments: Omit<Comment, "likes">[] = [
   { id: "c1", postId: "p1", authorId: "u3", text: "Que paleta! A vó ficou parecidíssima 🧡", createdAt: "2026-11-02T15:00:00Z" },
   { id: "c2", postId: "p1", authorId: "u8", text: "Vou usar esse mural na aula sobre muralismo comunitário. Obrigada por compartilhar!", createdAt: "2026-11-02T16:20:00Z" },
   { id: "c3", postId: "p2", authorId: "u4", text: "Nunca tinha reparado na ligação com as capas de disco. Aula!", createdAt: "2026-11-01T21:00:00Z" },
@@ -445,12 +445,12 @@ function seedStories(): Story[] {
 
 export function createSeedState(): AppState {
   return {
-    version: 3,
+    version: 4,
     stories: seedStories(),
     sessionUserId: null,
     users: structuredClone(users),
     posts: structuredClone(posts),
-    comments: structuredClone(comments),
+    comments: structuredClone(comments).map((c) => ({ ...c, likes: [] })),
     notifications: structuredClone(notifications),
     reports: [
       {

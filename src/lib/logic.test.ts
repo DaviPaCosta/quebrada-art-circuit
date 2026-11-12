@@ -3,6 +3,56 @@ import { createSeedState } from "./mock-data";
 import * as L from "./logic";
 
 describe("regras da rede", () => {
+  it("menções entre contas notificam uma vez por conta e excluem bloqueados", () => {
+    const s = L.toggleBlock(createSeedState(), "u8", "u2");
+    const maria = s.users.find((u) => u.id === "u1");
+    const blocked = s.users.find((u) => u.id === "u2");
+    const me = s.users.find((u) => u.id === "u8");
+    const next = L.addComment(s, "u8", "p1", `@${maria?.username} @${maria?.username} @${blocked?.username} @${me?.username}`);
+    expect(next.notifications.filter((n) => n.type === "mention").map((n) => n.userId)).toEqual(["u1"]);
+  });
+
+  it("menções em posts notificam as contas citadas", () => {
+    const s = createSeedState();
+    const result = L.createPost(s, "u8", { media: [], title: "Arte", description: "Com @mariacores", category: "Grafite", credits: "@mariacores", tags: [] });
+    expect(result.state.notifications.filter((n) => n.type === "mention")).toHaveLength(1);
+    expect(result.state.notifications[0]).toMatchObject({ userId: "u1", postId: result.id });
+  });
+
+  it("respostas mantêm a conversa e avisam o autor do comentário", () => {
+    const s = L.addComment(createSeedState(), "u8", "p1", "Que arte!", "c1");
+    expect(s.comments.at(-1)).toMatchObject({ parentId: "c1", text: "Que arte!" });
+    expect(s.notifications.some((n) => n.type === "reply" && n.userId === "u3")).toBe(true);
+  });
+
+  it("curtidas em comentários podem ser desfeitas", () => {
+    const s = L.toggleCommentLike(createSeedState(), "u8", "c1");
+    expect(s.comments.find((c) => c.id === "c1")?.likes).toEqual(["u8"]);
+    expect(s.notifications[0]).toMatchObject({ type: "commentLike", userId: "u3" });
+    expect(L.toggleCommentLike(s, "u8", "c1").comments.find((c) => c.id === "c1")?.likes).toEqual([]);
+  });
+
+  it("posts mais curtidos ficam em ordem decrescente sem removidos ou bloqueados", () => {
+    const seed = createSeedState();
+    const s = L.toggleBlock({ ...seed, posts: seed.posts.map((p) => ({ ...p, likes: p.id === "p2" ? ["u1", "u3", "u4"] : p.id === "p3" ? ["u1", "u4"] : [], removed: p.id === "p4" })) }, "u8", "u1");
+    const posts = L.mostLikedPosts(s, "u8");
+    expect(posts.slice(0, 2).map((p) => p.id)).toEqual(["p2", "p3"]);
+    expect(posts.some((p) => p.id === "p4" || p.authorId === "u1")).toBe(false);
+  });
+
+  it("personalização salva a cor e capa mas só destaca uma obra própria", () => {
+    const s = createSeedState();
+    expect(L.updateProfile(s, "u8", { pinnedPostId: "p1" }).ok).toBe(false);
+    const r = L.updateProfile(s, "u1", { color: "lime", cover: "data:photo", pinnedPostId: "p1" });
+    expect(r.ok && r.state.users.find((u) => u.id === "u1")).toMatchObject({ color: "lime", cover: "data:photo", pinnedPostId: "p1" });
+  });
+
+  it("migração mantém comentários anteriores com curtidas vazias", () => {
+    const seed = createSeedState();
+    const migrated = L.migrateState({ ...seed, version: 3, comments: seed.comments.map(({ likes: _likes, ...c }) => c) }, seed);
+    expect(migrated?.comments.find((c) => c.id === "c1")?.likes).toEqual([]);
+    expect(migrated?.users).toEqual(seed.users);
+  });
   it("não permite cadastrar usuário já existente", () => {
     const r = L.signUp(createSeedState(), { name: "X", username: "mariacores", email: "x@x.com", password: "123456" });
     expect(r.ok).toBe(false);
@@ -84,7 +134,7 @@ describe("regras da rede", () => {
       posts: [{ id: "px", authorId: "u1", image: "data:abc", alt: "desc", title: "t", description: "", category: "Grafite", credits: "c", tags: [], likes: [], createdAt: "2026-01-01" }],
     };
     const s = L.migrateState(old, createSeedState())!;
-    expect(s.version).toBe(3);
+    expect(s.version).toBe(4);
     const p = s.posts.find((x) => x.id === "px")!;
     expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
     expect(s.posts.some((x) => x.type === "video")).toBe(true);
@@ -130,7 +180,7 @@ describe("regras da rede", () => {
       const seed = createSeedState();
       const old = { ...seed, version: 2, stories: undefined };
       const m = L.migrateState(old, seed)!;
-      expect(m.version).toBe(3);
+      expect(m.version).toBe(4);
       expect(m.stories.length).toBe(seed.stories.length);
     });
   });
