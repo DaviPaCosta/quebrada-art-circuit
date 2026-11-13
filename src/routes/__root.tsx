@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
       { name: "theme-color", content: "#171717" },
       { title: "Vozes do Muro — rede de artes periféricas" },
       { name: "description", content: "Rede social educativa de grafite, rap, pichação, poesia e cultura periférica." },
@@ -121,6 +121,10 @@ function SettingsEffect() {
   const settings = useAppState((s) => s.settings);
   useEffect(() => {
     hydrateStore();
+    // iPhone ignora "user-scalable=no": bloqueia a pinça da página (as fotos usam PinchZoom).
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", block);
+    return () => document.removeEventListener("gesturestart", block);
   }, []);
   useEffect(() => {
     const el = document.documentElement;

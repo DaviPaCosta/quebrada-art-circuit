@@ -3,6 +3,7 @@ import { memo, useCallback, useRef, useState } from "react";
 import type { MediaItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MediaImage } from "./MediaImage";
+import { PinchZoom } from "./PinchZoom";
 import { VideoPlayer } from "./VideoPlayer";
 
 /** Proporção exibida: entre 4:5 (vertical) e 1,91:1 (horizontal), como no Instagram. */
@@ -17,14 +18,16 @@ function Slide({ m, priority, detail }: { m: MediaItem; priority: boolean; detai
     return <VideoPlayer src={m.src} poster={m.poster} alt={m.alt} width={m.width} height={m.height} className="size-full" large={detail} />;
   }
   return (
-    <MediaImage
-      src={m.src}
-      alt={m.alt}
-      width={m.width}
-      height={m.height}
-      priority={priority}
-      className={cn("size-full", detail ? "object-contain" : "object-cover")}
-    />
+    <PinchZoom persist={detail}>
+      <MediaImage
+        src={m.src}
+        alt={m.alt}
+        width={m.width}
+        height={m.height}
+        priority={priority}
+        className={cn("size-full", detail ? "object-contain" : "object-cover")}
+      />
+    </PinchZoom>
   );
 }
 

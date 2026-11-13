@@ -131,6 +131,9 @@
 
   html {
     font-size: var(--app-font-size, 16px);
+    /* Como num app: a página não tem zoom de pinça nem de toque duplo (só as fotos, via PinchZoom). */
+    touch-action: pan-x pan-y;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
