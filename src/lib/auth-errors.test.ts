@@ -11,6 +11,7 @@ describe("mensagens de erro de conta", () => {
     ["Email link is invalid or has expired", "O link expirou. Peça um novo."],
     ['duplicate key value violates unique constraint "profiles_username_key"', "Esse nome de usuário já está em uso."],
     ["email rate limit exceeded", "Muitos e-mails enviados em pouco tempo. Espere alguns minutos e tente de novo."],
+    ["Error sending confirmation email", "Não conseguimos enviar o e-mail agora. Tente de novo em alguns minutos."],
     ["qualquer outra coisa", "Algo deu errado. Tente de novo em instantes."],
   ])("traduz %s", (msg, pt) => expect(friendlyAuthError(msg)).toBe(pt));
 });
