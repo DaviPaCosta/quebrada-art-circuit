@@ -77,7 +77,7 @@ function Welcome() {
           )}
         </div>
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          Projeto escolar · contas e dados são simulados e ficam salvos só neste aparelho.
+          Projeto escolar · rede de alunos e professores.
         </p>
       </div>
     </div>

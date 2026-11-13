@@ -1,12 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout, FieldError } from "@/components/vm/AuthLayout";
-import { actions } from "@/lib/store";
+import * as Auth from "@/lib/auth";
+import { useCurrentUser } from "@/lib/store";
 
 export const Route = createFileRoute("/entrar")({
   head: () => ({
@@ -24,23 +25,38 @@ export const Route = createFileRoute("/entrar")({
 
 function Login() {
   const navigate = useNavigate();
+  const me = useCurrentUser();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (me) void navigate({ to: "/feed" });
+  }, [me, navigate]);
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
+    setUnconfirmed(false);
     setLoading(true);
-    window.setTimeout(() => {
-      const r = actions.signIn(identifier, password);
-      setLoading(false);
-      if (!r.ok) return setError(r.error);
-      toast.success("Bem-vinde de volta!");
-      navigate({ to: "/feed" });
-    }, 350);
+    const r = await Auth.signIn(identifier, password);
+    setLoading(false);
+    if (!r.ok) {
+      setUnconfirmed(r.error.startsWith("Confirme seu e-mail"));
+      return setError(r.error);
+    }
+    toast.success("Bem-vinde de volta!");
+    navigate({ to: "/feed" });
+  };
+
+  const resend = async () => {
+    const r = await Auth.resendConfirmation(identifier);
+    if (r.ok) toast.success("E-mail de confirmação reenviado!");
+    else toast.error(r.error);
   };
 
   return (
@@ -58,8 +74,8 @@ function Login() {
     >
       <form onSubmit={submit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="id">E-mail ou usuário</Label>
-          <Input id="id" autoComplete="username" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="h-12" />
+          <Label htmlFor="id">E-mail</Label>
+          <Input id="id" type="email" autoComplete="email" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="h-12" />
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -76,6 +92,11 @@ function Login() {
           </div>
         </div>
         <FieldError>{error}</FieldError>
+        {unconfirmed && (
+          <Button type="button" variant="outline" className="w-full" onClick={resend}>
+            Reenviar e-mail de confirmação
+          </Button>
+        )}
         <Button type="submit" variant="spray" size="lg" className="w-full" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
         </Button>

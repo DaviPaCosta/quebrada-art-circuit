@@ -171,13 +171,6 @@ function me() {
 }
 
 export const actions = {
-  signUp(_input: { name: string; username: string; email: string; password: string }) {
-    // Substituído pelo Supabase Auth (auth.ts) na próxima etapa do plano.
-    return { ok: false as const, error: "Cadastro em atualização." };
-  },
-  signIn(_identifier: string, _password: string) {
-    return { ok: false as const, error: "Login em atualização." };
-  },
   async signOut() {
     if (isSupabaseConfigured()) await Auth.signOut();
     set({ ...state, sessionUserId: null });

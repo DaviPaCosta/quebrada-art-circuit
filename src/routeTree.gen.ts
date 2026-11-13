@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RedeRouteImport } from './routes/_rede'
 import { Route as CadastroRouteImport } from './routes/cadastro'
 import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as NovaSenhaRouteImport } from './routes/nova-senha'
 import { Route as RecuperarSenhaRouteImport } from './routes/recuperar-senha'
 import { Route as RegrasRouteImport } from './routes/regras'
 import { Route as RedeAgendaRouteImport } from './routes/_rede.agenda'
@@ -27,6 +28,7 @@ import { Route as RedeNotificacoesRouteImport } from './routes/_rede.notificacoe
 import { Route as RedePublicarRouteImport } from './routes/_rede.publicar'
 import { Route as RedeReelsRouteImport } from './routes/_rede.reels'
 import { Route as RedeSalvosRouteImport } from './routes/_rede.salvos'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as RedePostIdRouteImport } from './routes/_rede.post.$id'
 import { Route as RedeUUsernameRouteImport } from './routes/_rede.u.$username'
 
@@ -47,6 +49,11 @@ const CadastroRoute = CadastroRouteImport.update({
 const EntrarRoute = EntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NovaSenhaRoute = NovaSenhaRouteImport.update({
+  id: '/nova-senha',
+  path: '/nova-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecuperarSenhaRoute = RecuperarSenhaRouteImport.update({
@@ -119,6 +126,11 @@ const RedeSalvosRoute = RedeSalvosRouteImport.update({
   path: '/salvos',
   getParentRoute: () => RedeRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RedePostIdRoute = RedePostIdRouteImport.update({
   id: '/post/$id',
   path: '/post/$id',
@@ -134,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/cadastro': typeof CadastroRoute
   '/entrar': typeof EntrarRoute
+  '/nova-senha': typeof NovaSenhaRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/regras': typeof RegrasRoute
   '/agenda': typeof RedeAgendaRoute
@@ -148,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/publicar': typeof RedePublicarRoute
   '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
 }
@@ -155,6 +169,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cadastro': typeof CadastroRoute
   '/entrar': typeof EntrarRoute
+  '/nova-senha': typeof NovaSenhaRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/regras': typeof RegrasRoute
   '/agenda': typeof RedeAgendaRoute
@@ -169,6 +184,7 @@ export interface FileRoutesByTo {
   '/publicar': typeof RedePublicarRoute
   '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
 }
@@ -178,6 +194,7 @@ export interface FileRoutesById {
   '/_rede': typeof RedeRouteWithChildren
   '/cadastro': typeof CadastroRoute
   '/entrar': typeof EntrarRoute
+  '/nova-senha': typeof NovaSenhaRoute
   '/recuperar-senha': typeof RecuperarSenhaRoute
   '/regras': typeof RegrasRoute
   '/_rede/agenda': typeof RedeAgendaRoute
@@ -192,6 +209,7 @@ export interface FileRoutesById {
   '/_rede/publicar': typeof RedePublicarRoute
   '/_rede/reels': typeof RedeReelsRoute
   '/_rede/salvos': typeof RedeSalvosRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/_rede/post/$id': typeof RedePostIdRoute
   '/_rede/u/$username': typeof RedeUUsernameRoute
 }
@@ -201,6 +219,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cadastro'
     | '/entrar'
+    | '/nova-senha'
     | '/recuperar-senha'
     | '/regras'
     | '/agenda'
@@ -215,6 +234,7 @@ export interface FileRouteTypes {
     | '/publicar'
     | '/reels'
     | '/salvos'
+    | '/auth/callback'
     | '/post/$id'
     | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
@@ -222,6 +242,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cadastro'
     | '/entrar'
+    | '/nova-senha'
     | '/recuperar-senha'
     | '/regras'
     | '/agenda'
@@ -236,6 +257,7 @@ export interface FileRouteTypes {
     | '/publicar'
     | '/reels'
     | '/salvos'
+    | '/auth/callback'
     | '/post/$id'
     | '/u/$username'
   id:
@@ -244,6 +266,7 @@ export interface FileRouteTypes {
     | '/_rede'
     | '/cadastro'
     | '/entrar'
+    | '/nova-senha'
     | '/recuperar-senha'
     | '/regras'
     | '/_rede/agenda'
@@ -258,6 +281,7 @@ export interface FileRouteTypes {
     | '/_rede/publicar'
     | '/_rede/reels'
     | '/_rede/salvos'
+    | '/auth/callback'
     | '/_rede/post/$id'
     | '/_rede/u/$username'
   fileRoutesById: FileRoutesById
@@ -267,8 +291,10 @@ export interface RootRouteChildren {
   RedeRoute: typeof RedeRouteWithChildren
   CadastroRoute: typeof CadastroRoute
   EntrarRoute: typeof EntrarRoute
+  NovaSenhaRoute: typeof NovaSenhaRoute
   RecuperarSenhaRoute: typeof RecuperarSenhaRoute
   RegrasRoute: typeof RegrasRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -299,6 +325,13 @@ declare module '@tanstack/react-router' {
       path: '/entrar'
       fullPath: '/entrar'
       preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nova-senha': {
+      id: '/nova-senha'
+      path: '/nova-senha'
+      fullPath: '/nova-senha'
+      preLoaderRoute: typeof NovaSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recuperar-senha': {
@@ -399,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedeSalvosRouteImport
       parentRoute: typeof RedeRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_rede/post/$id': {
       id: '/_rede/post/$id'
       path: '/post/$id'
@@ -457,8 +497,10 @@ const rootRouteChildren: RootRouteChildren = {
   RedeRoute: RedeRouteWithChildren,
   CadastroRoute: CadastroRoute,
   EntrarRoute: EntrarRoute,
+  NovaSenhaRoute: NovaSenhaRoute,
   RecuperarSenhaRoute: RecuperarSenhaRoute,
   RegrasRoute: RegrasRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
