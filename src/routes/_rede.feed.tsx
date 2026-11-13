@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArtistCard } from "@/components/vm/ArtistCard";
+import { Highlights } from "@/components/vm/Highlights";
 import { PostCard } from "@/components/vm/PostCard";
 import { StoryBar } from "@/components/vm/stories/StoryBar";
-import { visiblePosts, isBlockedBetween } from "@/lib/logic";
+import { highlightPosts, isBlockedBetween, visiblePosts } from "@/lib/logic";
 import { useAppState } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ function Feed() {
     return tab === "todos" ? all : all.filter((p) => following.includes(p.authorId) || p.authorId === meId);
   }, [state, meId, tab, following]);
 
+  const highlights = useMemo(() => highlightPosts(state, meId, Date.now()), [state, meId]);
   const shown = posts.slice(0, limit);
   const hasMore = posts.length > limit;
 
@@ -59,6 +61,7 @@ function Feed() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="mx-auto w-full max-w-xl">
         <StoryBar />
+        <Highlights posts={highlights} users={state.users} />
 
         <div role="tablist" className="sticky top-14 z-20 mt-3 flex border-b border-border bg-background/95 backdrop-blur">
           {(["todos", "seguindo"] as const).map((t) => (
@@ -94,10 +97,21 @@ function Feed() {
           {posts.length === 0 && (
             <div className="px-6 py-16 text-center">
               <p className="font-marker text-xl text-accent">Muro vazio por aqui</p>
-              <p className="mt-2 text-muted-foreground">Siga artistas para ver as obras deles nesta aba.</p>
-              <Button asChild variant="spray" className="mt-6">
-                <Link to="/explorar">Explorar artistas</Link>
-              </Button>
+              {tab === "todos" ? (
+                <>
+                  <p className="mt-2 text-muted-foreground">Seja a primeira pessoa a postar!</p>
+                  <Button asChild variant="spray" className="mt-6">
+                    <Link to="/publicar">Publicar agora</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-muted-foreground">Siga artistas para ver as obras deles nesta aba.</p>
+                  <Button asChild variant="spray" className="mt-6">
+                    <Link to="/explorar">Explorar artistas</Link>
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>
