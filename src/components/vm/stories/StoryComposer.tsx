@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { MAX_IMAGE_MB, validateVideo } from "@/lib/logic";
-import { deleteMedia, putMedia } from "@/lib/media-db";
+import { MAX_IMAGE_MB } from "@/lib/logic";
+import { extFor, uploadAll } from "@/lib/api/media";
+import { prepareVideo } from "@/lib/prepare-media";
 import { captureVideoFrame, probeVideo, renderImage } from "@/lib/media-processing";
 import { actions } from "@/lib/store";
 import type { MediaItem } from "@/lib/types";
@@ -15,6 +16,7 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
   const [url, setUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const isVideo = !!file?.type.startsWith("video/");
 
   useEffect(() => {
@@ -28,34 +30,34 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
   async function publish() {
     if (!file || !url) return;
     setBusy(true);
-    const saved: string[] = [];
     try {
       let media: MediaItem;
       const id = `ms${Date.now().toString(36)}`;
       if (isVideo) {
         const meta = await probeVideo(url);
-        const err = validateVideo(meta.duration, file.size);
-        if (err) throw new Error(err);
-        const poster = await putMedia(await captureVideoFrame(url, 0.5));
-        saved.push(poster);
-        const src = await putMedia(file);
-        saved.push(src);
-        media = { id, kind: "video", src, poster, width: meta.width, height: meta.height, duration: meta.duration, alt: caption || "Vídeo do story" };
+        const poster = await captureVideoFrame(url, 0.5);
+        const video = await prepareVideo(file, meta.duration, (r) => setProgress(Math.round(r * 100)));
+        const [src, posterUp] = await uploadAll([
+          { blob: video, ext: extFor(video, "mp4") },
+          { blob: poster, ext: extFor(poster, "webp") },
+        ]);
+        media = { id, kind: "video", src: src!.url, poster: posterUp!.url, width: meta.width, height: meta.height, duration: meta.duration, alt: caption || "Vídeo do story" };
       } else {
         if (file.size > MAX_IMAGE_MB * 1024 * 1024) throw new Error(`Fotos podem ter no máximo ${MAX_IMAGE_MB} MB.`);
         const out = await renderImage(url, "original", 0.5, 1080);
-        const src = await putMedia(out.blob);
-        saved.push(src);
-        media = { id, kind: "image", src, width: out.width, height: out.height, alt: caption || "Foto do story" };
+        const [src] = await uploadAll([{ blob: out.blob, ext: extFor(out.blob, "webp") }]);
+        media = { id, kind: "image", src: src!.url, width: out.width, height: out.height, alt: caption || "Foto do story" };
       }
-      actions.createStory(media, caption);
-      toast.success("Story no ar! Ele some em 24 horas.");
-      onClose();
+      const storyId = await actions.createStory(media, caption);
+      if (storyId) {
+        toast.success("Story no ar! Ele some em 24 horas.");
+        onClose();
+      }
     } catch (e) {
-      void deleteMedia(saved);
       toast.error((e as Error).message || "Não foi possível publicar o story.");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -83,7 +85,7 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
         />
         <Button variant="spray" onClick={publish} disabled={busy || !url}>
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-          {busy ? "Publicando..." : "Publicar story"}
+          {busy ? (progress !== null && progress < 100 ? `Preparando vídeo… ${progress}%` : "Publicando...") : "Publicar story"}
         </Button>
       </DialogContent>
     </Dialog>

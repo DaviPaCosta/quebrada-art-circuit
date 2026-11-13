@@ -15,8 +15,9 @@ import { fileToDraft, type Draft } from "@/components/vm/media/drafts";
 import { MediaPicker } from "@/components/vm/media/MediaPicker";
 import { UploadPreview } from "@/components/vm/media/UploadPreview";
 import { MAX_MEDIA, parseTags } from "@/lib/logic";
-import { deleteMedia, putMedia } from "@/lib/media-db";
+import { extFor, uploadAll } from "@/lib/api/media";
 import { captureVideoFrame, renderImage } from "@/lib/media-processing";
+import { prepareVideo } from "@/lib/prepare-media";
 import { actions, useCurrentUser } from "@/lib/store";
 import { CATEGORIES, type Category, type MediaItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -139,26 +140,39 @@ function Publish() {
   };
 
   const publish = async () => {
-    const saved: string[] = [];
     try {
-      const media: MediaItem[] = [];
+      // 1. Prepara cada item no aparelho (foto otimizada, vídeo comprimido + capa).
+      const files: { blob: Blob; ext: string }[] = [];
+      const pending: Omit<MediaItem, "src" | "poster">[] = [];
       for (const [i, d] of drafts.entries()) {
-        setProgress(`Otimizando ${i + 1} de ${drafts.length}…`);
+        const label = `${i + 1} de ${drafts.length}`;
         if (d.kind === "image") {
+          setProgress(`Otimizando foto ${label}…`);
           const out = await renderImage(d.url, d.aspect, d.pos);
-          const src = await putMedia(out.blob);
-          saved.push(src);
-          media.push({ id: d.id, kind: "image", src, width: out.width, height: out.height, alt: d.alt.trim() });
+          files.push({ blob: out.blob, ext: extFor(out.blob, "webp") });
+          pending.push({ id: d.id, kind: "image", width: out.width, height: out.height, alt: d.alt.trim() });
         } else {
-          const posterBlob = await captureVideoFrame(d.url, d.coverTime);
-          const poster = await putMedia(posterBlob);
-          saved.push(poster);
-          const src = await putMedia(d.file);
-          saved.push(src);
-          media.push({ id: d.id, kind: "video", src, poster, width: d.width, height: d.height, duration: d.duration, alt: d.alt.trim() });
+          setProgress(`Preparando vídeo ${label}…`);
+          const poster = await captureVideoFrame(d.url, d.coverTime);
+          const video = await prepareVideo(d.file, d.duration ?? 0, (r) =>
+            setProgress(`Preparando vídeo ${label}… ${Math.round(r * 100)}%`),
+          );
+          files.push({ blob: video, ext: extFor(video, "mp4") }, { blob: poster, ext: extFor(poster, "webp") });
+          pending.push({ id: d.id, kind: "video", width: d.width, height: d.height, duration: d.duration, alt: d.alt.trim() });
         }
       }
-      const id = actions.createPost({
+      // 2. Envia tudo; se algo falhar, nada fica pela metade.
+      setProgress("Enviando…");
+      const uploaded = await uploadAll(files);
+      let k = 0;
+      const media: MediaItem[] = pending.map((m) => {
+        if (m.kind === "image") return { ...m, src: uploaded[k++]!.url };
+        const src = uploaded[k++]!.url;
+        return { ...m, src, poster: uploaded[k++]!.url };
+      });
+      // 3. Cria o post no banco.
+      setProgress("Publicando…");
+      const id = await actions.createPost({
         media,
         title: title.trim(),
         description: description.trim(),
@@ -172,7 +186,6 @@ function Publish() {
         navigate({ to: "/post/$id", params: { id } });
       }
     } catch (e) {
-      void deleteMedia(saved);
       setError((e as Error).message || "Não foi possível publicar. Tente de novo.");
     } finally {
       setProgress(null);

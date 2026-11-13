@@ -61,3 +61,9 @@ export async function uploadAll(
     throw new Error(UPLOAD_ERROR);
   }
 }
+
+/** Envia uma imagem já reduzida (data URL) e devolve o endereço público. */
+export async function uploadDataUrl(dataUrl: string): Promise<string> {
+  const blob = await (await fetch(dataUrl)).blob();
+  return (await uploadMedia(blob, extFor(blob, "webp"))).url;
+}

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageTitle } from "@/components/vm/AppShell";
 import { FieldError } from "@/components/vm/AuthLayout";
 import { UserAvatar } from "@/components/vm/UserAvatar";
+import { uploadDataUrl } from "@/lib/api/media";
 import { fileToResizedDataUrl } from "@/lib/images";
 import { actions, useCurrentUser, useAppState } from "@/lib/store";
 import { CATEGORIES, type Category, type User } from "@/lib/types";
@@ -74,8 +75,8 @@ function ProfileForm({ user }: { user: User }) {
       <form onSubmit={save} className="space-y-5 px-4 sm:px-0">
         <div className="relative h-36 overflow-hidden rounded-md border border-border bg-muted">
           {form.cover ? <MediaImage src={form.cover} alt="Capa do perfil" width={1200} height={400} priority className="size-full object-cover" /> : <div className={cn("size-full border-b-8", form.color === "spray" ? "border-primary" : form.color === "violet" ? "border-secondary" : form.color === "lime" ? "border-accent" : "border-foreground")} />}
-          <label className="absolute bottom-3 left-3 inline-flex cursor-pointer items-center gap-2 rounded-md bg-background/90 px-3 py-2 text-sm font-semibold"><Camera className="size-4" />Trocar capa<input type="file" accept="image/*" aria-label="Trocar capa" className="sr-only" disabled={uploading} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setUploading(true); try { const cover = await fileToResizedDataUrl(file, 1200, 0.8); setForm((f) => ({ ...f, cover })); } catch { setError("Não foi possível carregar a capa."); } finally { setUploading(false); } }} /></label>
-          {form.cover && <Button type="button" variant="following" size="sm" className="absolute bottom-3 right-3" onClick={() => setForm((f) => ({ ...f, cover: undefined }))}>Remover capa</Button>}
+          <label className="absolute bottom-3 left-3 inline-flex cursor-pointer items-center gap-2 rounded-md bg-background/90 px-3 py-2 text-sm font-semibold"><Camera className="size-4" />Trocar capa<input type="file" accept="image/*" aria-label="Trocar capa" className="sr-only" disabled={uploading} onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; setUploading(true); try { const cover = await uploadDataUrl(await fileToResizedDataUrl(file, 1200, 0.8)); setForm((f) => ({ ...f, cover })); } catch { setError("Não foi possível carregar a capa."); } finally { setUploading(false); } }} /></label>
+          {form.cover && <Button type="button" variant="following" size="sm" className="absolute bottom-3 right-3" onClick={() => setForm((f) => ({ ...f, cover: "" }))}>Remover capa</Button>}
         </div>
         <div className="flex items-center gap-4">
           <UserAvatar user={{ ...user, avatar: form.avatar, color: form.color, name: form.name || user.name }} size="lg" />
@@ -89,17 +90,20 @@ function ProfileForm({ user }: { user: User }) {
                 onChange={async (e) => {
                   const f = e.target.files?.[0];
                   if (!f) return;
+                  setUploading(true);
                   try {
-                    const url = await fileToResizedDataUrl(f, 320, 0.85);
+                    const url = await uploadDataUrl(await fileToResizedDataUrl(f, 320, 0.85));
                     setForm((s) => ({ ...s, avatar: url }));
                   } catch (err) {
                     setError((err as Error).message);
+                  } finally {
+                    setUploading(false);
                   }
                 }}
               />
             </label>
             {form.avatar && (
-              <Button variant="ghost" type="button" onClick={() => setForm((s) => ({ ...s, avatar: undefined }))} className="text-left text-xs text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" type="button" onClick={() => setForm((s) => ({ ...s, avatar: "" }))} className="text-left text-xs text-muted-foreground hover:text-foreground">
                 Remover foto
               </Button>
             )}

@@ -1,5 +1,6 @@
-import { MAX_IMAGE_MB, validateVideo, type CropAspect } from "@/lib/logic";
+import { MAX_IMAGE_MB, type CropAspect } from "@/lib/logic";
 import { loadImage, probeVideo } from "@/lib/media-processing";
+import { videoProblem } from "@/lib/prepare-media";
 import type { MediaKind } from "@/lib/types";
 
 /** Foto ou vídeo escolhido, ainda não publicado (fica só na memória da página). */
@@ -36,7 +37,7 @@ export async function fileToDraft(file: File): Promise<Draft> {
       return { id, kind: "image", file, url, width: img.naturalWidth, height: img.naturalHeight, alt: "", aspect: "4:5", pos: 0.5, coverTime: 0 };
     }
     const meta = await probeVideo(url);
-    const err = validateVideo(meta.duration, file.size);
+    const err = videoProblem(file, meta.duration);
     if (err) throw new Error(`"${file.name}": ${err}`);
     return {
       id,
