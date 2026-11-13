@@ -23,6 +23,7 @@ import { Route as RedeCulturaRouteImport } from './routes/_rede.cultura'
 import { Route as RedeEditarPerfilRouteImport } from './routes/_rede.editar-perfil'
 import { Route as RedeExplorarRouteImport } from './routes/_rede.explorar'
 import { Route as RedeFeedRouteImport } from './routes/_rede.feed'
+import { Route as RedeMensagensRouteImport } from './routes/_rede.mensagens'
 import { Route as RedeModeracaoRouteImport } from './routes/_rede.moderacao'
 import { Route as RedeNotificacoesRouteImport } from './routes/_rede.notificacoes'
 import { Route as RedePublicarRouteImport } from './routes/_rede.publicar'
@@ -101,6 +102,11 @@ const RedeFeedRoute = RedeFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => RedeRoute,
 } as any)
+const RedeMensagensRoute = RedeMensagensRouteImport.update({
+  id: '/mensagens',
+  path: '/mensagens',
+  getParentRoute: () => RedeRoute,
+} as any)
 const RedeModeracaoRoute = RedeModeracaoRouteImport.update({
   id: '/moderacao',
   path: '/moderacao',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/editar-perfil': typeof RedeEditarPerfilRoute
   '/explorar': typeof RedeExplorarRoute
   '/feed': typeof RedeFeedRoute
+  '/mensagens': typeof RedeMensagensRoute
   '/moderacao': typeof RedeModeracaoRoute
   '/notificacoes': typeof RedeNotificacoesRoute
   '/publicar': typeof RedePublicarRoute
@@ -179,6 +186,7 @@ export interface FileRoutesByTo {
   '/editar-perfil': typeof RedeEditarPerfilRoute
   '/explorar': typeof RedeExplorarRoute
   '/feed': typeof RedeFeedRoute
+  '/mensagens': typeof RedeMensagensRoute
   '/moderacao': typeof RedeModeracaoRoute
   '/notificacoes': typeof RedeNotificacoesRoute
   '/publicar': typeof RedePublicarRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/_rede/editar-perfil': typeof RedeEditarPerfilRoute
   '/_rede/explorar': typeof RedeExplorarRoute
   '/_rede/feed': typeof RedeFeedRoute
+  '/_rede/mensagens': typeof RedeMensagensRoute
   '/_rede/moderacao': typeof RedeModeracaoRoute
   '/_rede/notificacoes': typeof RedeNotificacoesRoute
   '/_rede/publicar': typeof RedePublicarRoute
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/editar-perfil'
     | '/explorar'
     | '/feed'
+    | '/mensagens'
     | '/moderacao'
     | '/notificacoes'
     | '/publicar'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/editar-perfil'
     | '/explorar'
     | '/feed'
+    | '/mensagens'
     | '/moderacao'
     | '/notificacoes'
     | '/publicar'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_rede/editar-perfil'
     | '/_rede/explorar'
     | '/_rede/feed'
+    | '/_rede/mensagens'
     | '/_rede/moderacao'
     | '/_rede/notificacoes'
     | '/_rede/publicar'
@@ -397,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedeFeedRouteImport
       parentRoute: typeof RedeRoute
     }
+    '/_rede/mensagens': {
+      id: '/_rede/mensagens'
+      path: '/mensagens'
+      fullPath: '/mensagens'
+      preLoaderRoute: typeof RedeMensagensRouteImport
+      parentRoute: typeof RedeRoute
+    }
     '/_rede/moderacao': {
       id: '/_rede/moderacao'
       path: '/moderacao'
@@ -464,6 +483,7 @@ interface RedeRouteChildren {
   RedeEditarPerfilRoute: typeof RedeEditarPerfilRoute
   RedeExplorarRoute: typeof RedeExplorarRoute
   RedeFeedRoute: typeof RedeFeedRoute
+  RedeMensagensRoute: typeof RedeMensagensRoute
   RedeModeracaoRoute: typeof RedeModeracaoRoute
   RedeNotificacoesRoute: typeof RedeNotificacoesRoute
   RedePublicarRoute: typeof RedePublicarRoute
@@ -481,6 +501,7 @@ const RedeRouteChildren: RedeRouteChildren = {
   RedeEditarPerfilRoute: RedeEditarPerfilRoute,
   RedeExplorarRoute: RedeExplorarRoute,
   RedeFeedRoute: RedeFeedRoute,
+  RedeMensagensRoute: RedeMensagensRoute,
   RedeModeracaoRoute: RedeModeracaoRoute,
   RedeNotificacoesRoute: RedeNotificacoesRoute,
   RedePublicarRoute: RedePublicarRoute,

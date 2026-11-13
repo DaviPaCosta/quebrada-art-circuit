@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, PlusSquare, Search, Settings, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, MessageCircle, Plus, Settings, ShieldCheck, User as UserIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
@@ -18,56 +18,32 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const isActive = (to: string) => (to === "/feed" ? path === "/feed" : path.startsWith(to));
 
-  const desktopNav = [
+  const bottomNav = [
     { to: "/feed", label: "Início", icon: Home },
     { to: "/explorar", label: "Explorar", icon: Compass },
+    { to: "/publicar", label: "Publicar", icon: Plus, big: true },
     { to: "/reels", label: "Reels", icon: Clapperboard },
-    { to: "/cultura", label: "Cultura", icon: BookOpen },
-    { to: "/agenda", label: "Agenda", icon: CalendarDays },
+    { to: "/mensagens", label: "Mensagens", icon: MessageCircle },
   ] as const;
 
+  const iconLink = "rounded-full p-2 text-foreground transition-colors hover:bg-muted";
+
   return (
-    <div className="concrete min-h-screen pb-20 md:pb-0">
+    <div className="concrete min-h-screen pb-28">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-foreground">
         Pular para o conteúdo
       </a>
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
           <LogoLink />
-          <nav aria-label="Menu principal" className="ml-6 hidden items-center gap-1 md:flex">
-            {desktopNav.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "rounded-md px-3 py-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground",
-                  isActive(item.to) && "text-primary",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-            <Link
-              to={profilePath}
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground",
-                path.startsWith("/u/") && "text-primary",
-              )}
-            >
-              Perfil
-            </Link>
-          </nav>
-          <div className="ml-auto flex items-center gap-1">
-            <Link to="/explorar" aria-label="Buscar" className="rounded-full p-2 text-foreground hover:bg-muted md:hidden">
-              <Search className="size-5" />
-            </Link>
-            <Link to="/cultura" aria-label="Cultura" className="rounded-full p-2 text-foreground hover:bg-muted md:hidden">
+          <div className="ml-auto flex items-center gap-0.5">
+            <Link to="/cultura" aria-label="Cultura" className={cn(iconLink, isActive("/cultura") && "text-primary")}>
               <BookOpen className="size-5" />
             </Link>
-            <Link to="/publicar" className="hidden items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90 md:inline-flex">
-              <PlusSquare className="size-4" /> Publicar
+            <Link to="/agenda" aria-label="Agenda" className={cn(iconLink, isActive("/agenda") && "text-primary")}>
+              <CalendarDays className="size-5" />
             </Link>
-            <Link to="/notificacoes" aria-label={`Notificações${unread ? `, ${unread} novas` : ""}`} className="relative rounded-full p-2 hover:bg-muted">
+            <Link to="/notificacoes" aria-label={`Notificações${unread ? `, ${unread} novas` : ""}`} className={cn(iconLink, "relative", isActive("/notificacoes") && "text-primary")}>
               <Bell className="size-5" />
               {unread > 0 && (
                 <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
@@ -75,19 +51,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </Link>
-            <Link to="/salvos" aria-label="Salvos" className="rounded-full p-2 hover:bg-muted">
+            <Link to="/salvos" aria-label="Salvos" className={cn(iconLink, isActive("/salvos") && "text-primary")}>
               <Bookmark className="size-5" />
             </Link>
             {user?.isModerator && (
-              <Link to="/moderacao" aria-label="Painel de moderação" className="rounded-full p-2 text-accent hover:bg-muted">
+              <Link to="/moderacao" aria-label="Painel de moderação" className={cn(iconLink, "text-accent")}>
                 <ShieldCheck className="size-5" />
               </Link>
             )}
-            <Link to="/configuracoes" aria-label="Configurações" className="hidden rounded-full p-2 hover:bg-muted md:inline-flex">
+            <Link to="/configuracoes" aria-label="Configurações" className={cn(iconLink, isActive("/configuracoes") && "text-primary")}>
               <Settings className="size-5" />
-            </Link>
-            <Link to={profilePath} aria-label="Meu perfil" className="ml-1 hidden md:inline-flex">
-              <UserAvatar user={user} size="sm" />
             </Link>
           </div>
         </div>
@@ -97,24 +70,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <nav aria-label="Navegação" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-5">
-          {[
-            { to: "/feed", label: "Início", icon: Home },
-            { to: "/explorar", label: "Explorar", icon: Compass },
-            { to: "/publicar", label: "Publicar", icon: PlusSquare, big: true },
-            { to: "/reels", label: "Reels", icon: Clapperboard },
-          ].map((item) => (
+      <nav
+        aria-label="Navegação principal"
+        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
+      >
+        <ul className="grid grid-cols-6">
+          {bottomNav.map((item) => (
             <li key={item.to}>
               <Link
                 to={item.to}
+                aria-current={isActive(item.to) ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold text-muted-foreground",
+                  "flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground sm:text-[11px]",
                   isActive(item.to) && "text-primary",
                 )}
               >
-                {item.big ? (
-                  <span className="-mt-5 flex size-12 items-center justify-center rounded-xl border-2 border-background bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--lime)]">
+                {"big" in item ? (
+                  <span className="-mt-6 flex size-12 items-center justify-center rounded-xl border-2 border-background bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--lime)]">
                     <item.icon className="size-6" />
                   </span>
                 ) : (
@@ -127,8 +99,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <li>
             <Link
               to={profilePath}
+              aria-current={path.startsWith("/u/") ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold text-muted-foreground",
+                "flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground sm:text-[11px]",
                 (path.startsWith("/u/") || path.startsWith("/editar")) && "text-primary",
               )}
             >
