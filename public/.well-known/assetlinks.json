@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.lovable.vozesdomuro.twa",
+        "sha256_cert_fingerprints": ["71:8D:04:BC:A8:00:D1:A4:C2:1B:EF:25:81:34:7B:5F:DD:54:3B:48:27:2B:68:97:5B:60:50:18:5C:C5:31:A9"]
+      }
+    }]

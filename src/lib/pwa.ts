@@ -11,7 +11,7 @@ export function installHint(userAgent: string, standalone: boolean): "android" |
 }
 
 /** Endereço do APK no próprio site (null até o APK ser gerado no PWABuilder). */
-export const APK_URL: string | null = null;
+export const APK_URL: string | null = "/app/vozes-do-muro.apk";
 
 /** O que o botão "Baixar app" faz neste aparelho. */
 export function downloadOffer(
