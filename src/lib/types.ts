@@ -107,7 +107,7 @@ export interface AppNotification {
   read: boolean;
 }
 
-export type ReportTarget = "post" | "user" | "comment";
+export type ReportTarget = "post" | "user" | "comment" | "message";
 export type ReportStatus = "pendente" | "removido" | "arquivado";
 
 export interface Report {

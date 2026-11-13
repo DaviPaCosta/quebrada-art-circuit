@@ -1,4 +1,4 @@
-// Apaga stories vencidos (mais de 24 h) e os arquivos deles. Chamada pelo agendador do Supabase a cada hora.
+// Apaga stories vencidos (mais de 24 h) e mídia de conversas com mais de 30 dias. Chamada pelo agendador do Supabase a cada hora.
 // Não exige segredo: só mexe no que já venceu.
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -23,11 +23,34 @@ Deno.serve(async (req) => {
     .lt("expires_at", new Date().toISOString())
     .limit(500);
   if (error) return json({ error: error.message }, 500);
-  if (!data?.length) return json({ ok: true, apagados: 0 });
+  let apagados = 0;
+  if (data?.length) {
+    const paths = data.flatMap((s) => [pathFromUrl(s.src), pathFromUrl(s.poster)]).filter((p): p is string => !!p);
+    if (paths.length) await admin.storage.from("media").remove(paths);
+    const { error: delError } = await admin.from("stories").delete().in("id", data.map((s) => s.id));
+    if (delError) return json({ error: delError.message }, 500);
+    apagados = data.length;
+  }
 
-  const paths = data.flatMap((s) => [pathFromUrl(s.src), pathFromUrl(s.poster)]).filter((p): p is string => !!p);
-  if (paths.length) await admin.storage.from("media").remove(paths);
-  const { error: delError } = await admin.from("stories").delete().in("id", data.map((s) => s.id));
-  if (delError) return json({ error: delError.message }, 500);
-  return json({ ok: true, apagados: data.length });
+  // Fotos e vídeos de conversas com mais de 30 dias: apaga o arquivo e deixa "mídia expirada" (o texto fica).
+  const limite = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: velhas, error: chatError } = await admin
+    .from("messages")
+    .select("id, media_path, poster_path")
+    .in("kind", ["image", "video"])
+    .lt("created_at", limite)
+    .limit(500);
+  if (chatError) return json({ error: chatError.message }, 500);
+  let midiasConversa = 0;
+  if (velhas?.length) {
+    const chatPaths = velhas.flatMap((m) => [m.media_path, m.poster_path]).filter((p): p is string => !!p);
+    if (chatPaths.length) await admin.storage.from("chat").remove(chatPaths);
+    const { error: upError } = await admin
+      .from("messages")
+      .update({ kind: "expired", media_path: null, poster_path: null })
+      .in("id", velhas.map((m) => m.id));
+    if (upError) return json({ error: upError.message }, 500);
+    midiasConversa = velhas.length;
+  }
+  return json({ ok: true, apagados, midiasConversa });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { resolveSeed, type ResolvedSource } from "@/lib/images";
+import { signedChatUrl } from "@/lib/api/chat";
 import { getMediaUrl } from "@/lib/media-db";
 
 type State =
@@ -13,11 +14,11 @@ function syncResolve(src: string | undefined): State | null {
     const r = resolveSeed(src.slice(5));
     return r ? { status: "ready", source: r } : { status: "error" };
   }
-  if (src.startsWith("idb:")) return null;
+  if (src.startsWith("idb:") || src.startsWith("chat:")) return null;
   return { status: "ready", source: { src } };
 }
 
-/** Transforma "seed:", "idb:" ou data URL em um endereço que o navegador consegue exibir. */
+/** Transforma "seed:", "idb:", "chat:" (mídia privada de conversa) ou data URL em um endereço que o navegador consegue exibir. */
 export function useMediaSrc(src: string | undefined) {
   const initial = syncResolve(src);
   const [state, setState] = useState<State>(initial ?? { status: "loading" });
@@ -31,7 +32,7 @@ export function useMediaSrc(src: string | undefined) {
     }
     let alive = true;
     setState({ status: "loading" });
-    getMediaUrl(src!)
+    (src!.startsWith("chat:") ? signedChatUrl(src!.slice(5)) : getMediaUrl(src!))
       .then((url) => alive && setState({ status: "ready", source: { src: url } }))
       .catch(() => alive && setState({ status: "error" }));
     return () => {

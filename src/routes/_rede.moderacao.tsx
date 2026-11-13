@@ -103,7 +103,7 @@ function ReportItem({ report }: { report: Report }) {
     return u ? { kind: "user" as const, author: u } : null;
   });
 
-  const label = { post: "Publicação", comment: "Comentário", user: "Perfil" }[report.targetType];
+  const label = { post: "Publicação", comment: "Comentário", user: "Perfil", message: "Mensagem" }[report.targetType];
 
   return (
     <li className="rounded-lg border border-border bg-card p-4">
@@ -124,7 +124,9 @@ function ReportItem({ report }: { report: Report }) {
       </div>
 
       <div className="mt-3 rounded-md bg-muted p-3 text-sm">
-        {!target ? (
+        {report.targetType === "message" ? (
+          <p className="text-muted-foreground">Mensagem privada: o texto denunciado está acima. A conversa em si não fica visível para a moderação.</p>
+        ) : !target ? (
           <p className="text-muted-foreground">Conteúdo não encontrado (já removido).</p>
         ) : (
           <div className="flex items-center gap-2">
@@ -139,7 +141,7 @@ function ReportItem({ report }: { report: Report }) {
 
       {report.status === "pendente" && (
         <div className="mt-3 flex gap-2">
-          {report.targetType !== "user" && target && (
+          {(report.targetType === "message" || (report.targetType !== "user" && target)) && (
             <Button
               size="sm"
               variant="destructive"

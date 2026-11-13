@@ -3,6 +3,7 @@ import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, Me
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
+import { useConversations } from "@/lib/use-conversations";
 import { DownloadAppButton } from "./InstallPrompt";
 import { LogoLink } from "./Logo";
 import { UserAvatar } from "./UserAvatar";
@@ -14,10 +15,12 @@ function useUnread() {
 export function AppShell({ children }: { children: ReactNode }) {
   const user = useCurrentUser();
   const unread = useUnread();
+  const { unread: unreadMessages } = useConversations(user?.id ?? null);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const profilePath = user ? `/u/${user.username}` : "/entrar";
 
-  const isActive = (to: string) => (to === "/feed" ? path === "/feed" : path.startsWith(to));
+  const isActive = (to: string) =>
+    to === "/feed" ? path === "/feed" : to === "/mensagens" ? path.startsWith("/mensagens") || path.startsWith("/conversa") : path.startsWith(to);
 
   const bottomNav = [
     { to: "/feed", label: "Início", icon: Home },
@@ -70,13 +73,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      {!path.startsWith("/publicar") && <DownloadAppButton />}
+      {!path.startsWith("/publicar") && !path.startsWith("/conversa") && <DownloadAppButton />}
 
       <main id="conteudo" className="mx-auto w-full min-w-0 max-w-5xl px-0 sm:px-4">
         {children}
       </main>
 
-      <nav
+      {/* Na conversa, a barra de escrever ocupa o lugar da navegação. */}
+      {!path.startsWith("/conversa") && <nav
         aria-label="Navegação principal"
         className="fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.75rem)] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
       >
@@ -91,7 +95,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                   isActive(item.to) && "text-primary",
                 )}
               >
-                {"big" in item ? (
+                {item.to === "/mensagens" && unreadMessages > 0 ? (
+                  <span className="relative">
+                    <item.icon className="size-6" />
+                    <span className="absolute -right-2 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  </span>
+                ) : "big" in item ? (
                   <span className="-mt-6 flex size-12 items-center justify-center rounded-xl border-2 border-background bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--lime)]">
                     <item.icon className="size-6" />
                   </span>
@@ -116,7 +127,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           </li>
         </ul>
-      </nav>
+      </nav>}
     </div>
   );
 }

@@ -317,6 +317,10 @@ export async function insertReport(input: { targetType: ReportTarget; targetId: 
 export async function resolveReport(report: { id: string; targetType: ReportTarget; targetId: string }, action: "remover" | "arquivar") {
   if (action === "remover" && report.targetType === "post") await setRemoved(report.targetId, true);
   if (action === "remover" && report.targetType === "comment") await deleteComment(report.targetId);
+  if (action === "remover" && report.targetType === "message") {
+    const { error } = await getSupabase().rpc("moderate_message", { p_message: report.targetId });
+    check(error, "Não conseguimos remover a mensagem.");
+  }
   const { error } = await getSupabase()
     .from("reports")
     .update({ status: action === "remover" ? "removido" : "arquivado" })

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Archive, Flag, Grid3x3, MapPin, MoreHorizontal, Settings, ShieldOff, Pin } from "lucide-react";
+import { Archive, Flag, Grid3x3, MapPin, MessageCircle, MoreHorizontal, Settings, ShieldOff, Pin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { archivedPosts, isBlockedBetween, visiblePosts, postCover } from "@/lib/
 import { MediaImage } from "@/components/vm/media/MediaImage";
 import { MentionText } from "@/components/vm/Mentions";
 import { cn } from "@/lib/utils";
+import * as Chat from "@/lib/api/chat";
 import { actions, useAppState } from "@/lib/store";
 
 export const Route = createFileRoute("/_rede/u/$username")({
@@ -40,6 +41,7 @@ function Profile() {
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [tab, setTab] = useState<"galeria" | "arquivados">("galeria");
+  const [opening, setOpening] = useState(false);
 
   if (!user) {
     return (
@@ -125,6 +127,24 @@ function Profile() {
               <div className="flex-1 [&>button]:w-full">
                 <FollowButton targetId={user.id} size="default" />
               </div>
+              <Button
+                variant="following"
+                className="flex-1"
+                disabled={opening}
+                onClick={async () => {
+                  setOpening(true);
+                  try {
+                    const id = await Chat.startConversation(user.id);
+                    navigate({ to: "/conversa/$id", params: { id } });
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Não conseguimos abrir a conversa.");
+                  } finally {
+                    setOpening(false);
+                  }
+                }}
+              >
+                <MessageCircle /> Mensagem
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="following" size="icon" aria-label="Mais opções">
