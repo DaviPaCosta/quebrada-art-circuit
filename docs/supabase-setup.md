@@ -58,3 +58,16 @@ O envio padrão do Supabase só manda ~2 e-mails por hora.
 ## 8. Marcar moderadores
 Painel → **Table Editor → profiles** → na linha da pessoa, mude `is_moderator` para `true`.
 Para corrigir o papel de alguém, mude `role` para `aluno` ou `professor` na mesma tela.
+
+
+---
+
+# Etapa 2 — rede social online
+
+1. **SQL Editor:** rode `supabase/migrations/20261113000000_social.sql`. Depois rode `supabase/tests/social_check.sql`: todas as linhas com `ok = true`.
+2. **Edge Functions → Deploy a new function → Via Editor:** nome `expire-stories`, código de `supabase/functions/expire-stories/index.ts`. Em **Details**, desligue "Verify JWT".
+3. **Segredo da limpeza:** invente um texto longo e aleatório (ex.: 40 letras e números).
+   - Edge Functions → **Secrets** → adicione `CRON_SECRET` com esse texto.
+   - SQL Editor: `select vault.create_secret('<o mesmo texto>', 'cron_secret');`
+4. **SQL Editor:** rode `supabase/migrations/20261113000100_cron_stories.sql` (agenda a limpeza de hora em hora).
+5. **Conta oficial:** crie a conta `@vozesdomuro` pelo app, confirme o e-mail e rode `supabase/seed/conta_oficial.sql`.
