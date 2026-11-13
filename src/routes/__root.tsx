@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { registerServiceWorker } from "@/lib/pwa";
 import { hydrateStore, useAppState } from "@/lib/store";
 
 function NotFoundComponent() {
@@ -79,6 +80,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
       { name: "theme-color", content: "#171717" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Vozes do Muro" },
       { title: "Vozes do Muro — rede de artes periféricas" },
       { name: "description", content: "Rede social educativa de grafite, rap, pichação, poesia e cultura periférica." },
       { property: "og:title", content: "Vozes do Muro" },
@@ -95,6 +100,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -121,6 +128,7 @@ function SettingsEffect() {
   const settings = useAppState((s) => s.settings);
   useEffect(() => {
     hydrateStore();
+    registerServiceWorker();
     // iPhone ignora "user-scalable=no": bloqueia a pinça da página (as fotos usam PinchZoom).
     const block = (e: Event) => e.preventDefault();
     document.addEventListener("gesturestart", block);

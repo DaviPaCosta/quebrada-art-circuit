@@ -1,0 +1,19 @@
+{
+  "name": "Vozes do Muro",
+  "short_name": "Vozes do Muro",
+  "description": "Rede social de grafite, rap, poesia e cultura periférica da escola.",
+  "id": "/",
+  "start_url": "/feed",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#171717",
+  "theme_color": "#171717",
+  "lang": "pt-BR",
+  "categories": ["social", "education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

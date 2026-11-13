@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { PageTitle } from "@/components/vm/AppShell";
 import { ConfirmDialog } from "@/components/vm/ConfirmDialog";
+import { InstallSection } from "@/components/vm/InstallPrompt";
 import { UserAvatar } from "@/components/vm/UserAvatar";
 import { actions, useAppState, useCurrentUser } from "@/lib/store";
 
@@ -123,6 +124,7 @@ function SettingsPage() {
       </Section>
 
       <Section title="Ajuda">
+        <InstallSection />
         <Link to="/ajuda" className="flex items-center gap-3 p-4 hover:bg-muted">
           <HelpCircle className="size-5" />
           <span className="flex-1 font-semibold">Ajuda e denúncia</span>

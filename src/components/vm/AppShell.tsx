@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const iconLink = "rounded-full p-2 text-foreground transition-colors hover:bg-muted";
 
   return (
-    <div className="concrete min-h-screen pb-28">
+    <div className="concrete min-h-screen pb-36">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:bg-accent focus:px-3 focus:py-2 focus:text-accent-foreground">
         Pular para o conteúdo
       </a>
@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
+        className="fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.75rem)] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
       >
         <ul className="grid grid-cols-6">
           {bottomNav.map((item) => (

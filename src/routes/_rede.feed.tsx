@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArtistCard } from "@/components/vm/ArtistCard";
 import { Highlights } from "@/components/vm/Highlights";
+import { InstallBanner } from "@/components/vm/InstallPrompt";
 import { PostCard } from "@/components/vm/PostCard";
 import { StoryBar } from "@/components/vm/stories/StoryBar";
 import { highlightPosts, isBlockedBetween, visiblePosts } from "@/lib/logic";
@@ -61,6 +62,7 @@ function Feed() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="mx-auto w-full max-w-xl">
         <StoryBar />
+        <InstallBanner />
         <Highlights posts={highlights} users={state.users} />
 
         <div role="tablist" className="sticky top-14 z-20 mt-3 flex border-b border-border bg-background/95 backdrop-blur">

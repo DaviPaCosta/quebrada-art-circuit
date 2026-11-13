@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#171717"/>
+  <rect x="56" y="388" width="400" height="14" rx="7" fill="#7C3AED"/>
+  <text x="256" y="350" text-anchor="middle" font-family="Impact, Anton, 'Arial Black', sans-serif" font-size="250" fill="#F97316" letter-spacing="-6">VM</text>
+  <path d="M332 330 h28 v70 a14 14 0 0 1 -28 0 z" fill="#A3E635"/>
+  <circle cx="346" cy="430" r="12" fill="#A3E635"/>
+</svg>
