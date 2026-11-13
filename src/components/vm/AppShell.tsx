@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, MessageCircle, Plus, Settings, ShieldCheck, Star, User as UserIcon } from "lucide-react";
+import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, MessageCircle, Newspaper, Plus, Settings, ShieldCheck, Star, User as UserIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
@@ -23,11 +23,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     to === "/feed" ? path === "/feed" : to === "/mensagens" ? path.startsWith("/mensagens") || path.startsWith("/conversa") : path.startsWith(to);
 
   const bottomNav = [
-    { to: "/feed", label: "Início", icon: Home },
-    { to: "/explorar", label: "Explorar", icon: Compass },
-    { to: "/publicar", label: "Publicar", icon: Plus, big: true },
-    { to: "/reels", label: "Reels", icon: Clapperboard },
-    { to: "/mensagens", label: "Mensagens", icon: MessageCircle },
+    { to: "/feed", label: "Início", short: "Início", icon: Home },
+    { to: "/explorar", label: "Explorar", short: "Explorar", icon: Compass },
+    { to: "/publicar", label: "Publicar", short: "Postar", icon: Plus, big: true },
+    { to: "/reels", label: "Reels", short: "Reels", icon: Clapperboard },
+    { to: "/noticias", label: "Notícias", short: "Notícias", icon: Newspaper },
+    { to: "/mensagens", label: "Mensagens", short: "Msgs", icon: MessageCircle },
   ] as const;
 
   const iconLink = "rounded-full p-1 text-foreground transition-colors hover:bg-muted min-[400px]:p-1.5 sm:p-2";
@@ -82,34 +83,36 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Na conversa, a barra de escrever ocupa o lugar da navegação. */}
       {!path.startsWith("/conversa") && <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-3 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.75rem)] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
+        className="fixed inset-x-2 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+2.75rem)] z-30 mx-auto max-w-lg rounded-2xl border border-accent/40 bg-background/85 shadow-[0_8px_30px_rgba(0,0,0,0.45),3px_3px_0_0_var(--lime)] backdrop-blur-md"
       >
-        <ul className="grid grid-cols-6">
+        <ul className="grid grid-cols-7">
           {bottomNav.map((item) => (
             <li key={item.to}>
               <Link
                 to={item.to}
                 aria-current={isActive(item.to) ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground sm:text-[11px]",
+                  "flex min-w-0 flex-col items-center gap-0.5 py-2 text-[9px] font-semibold leading-tight text-muted-foreground transition-colors hover:text-foreground min-[400px]:text-[10px] sm:text-[11px]",
                   isActive(item.to) && "text-primary",
                 )}
               >
                 {item.to === "/mensagens" && unreadMessages > 0 ? (
                   <span className="relative">
-                    <item.icon className="size-6" />
+                    <item.icon className="size-5 min-[400px]:size-6" />
                     <span className="absolute -right-2 -top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                       {unreadMessages > 9 ? "9+" : unreadMessages}
                     </span>
                   </span>
                 ) : "big" in item ? (
-                  <span className="-mt-6 flex size-12 items-center justify-center rounded-xl border-2 border-background bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--lime)]">
-                    <item.icon className="size-6" />
+                  <span className="-mt-5 flex size-10 items-center justify-center rounded-xl border-2 border-background bg-primary text-primary-foreground shadow-[3px_3px_0_0_var(--lime)] min-[400px]:size-11">
+                    <item.icon className="size-5 min-[400px]:size-6" />
                   </span>
                 ) : (
-                  <item.icon className="size-6" />
+                  <item.icon className="size-5 min-[400px]:size-6" />
                 )}
-                {item.label}
+                {/* Nome curto em celular estreito, completo a partir de 400 px. */}
+                <span className="max-w-full truncate min-[400px]:hidden">{item.short}</span>
+                <span className="hidden max-w-full truncate min-[400px]:inline">{item.label}</span>
               </Link>
             </li>
           ))}
@@ -118,12 +121,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               to={profilePath}
               aria-current={path.startsWith("/u/") ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center gap-0.5 py-2 text-[10px] font-semibold text-muted-foreground transition-colors hover:text-foreground sm:text-[11px]",
+                "flex min-w-0 flex-col items-center gap-0.5 py-2 text-[9px] font-semibold leading-tight text-muted-foreground transition-colors hover:text-foreground min-[400px]:text-[10px] sm:text-[11px]",
                 (path.startsWith("/u/") || path.startsWith("/editar")) && "text-primary",
               )}
             >
-              {user ? <UserAvatar user={user} size="xs" className="size-6" /> : <UserIcon className="size-6" />}
-              Perfil
+              {user ? <UserAvatar user={user} size="xs" className="size-5 min-[400px]:size-6" /> : <UserIcon className="size-5 min-[400px]:size-6" />}
+              <span>Perfil</span>
             </Link>
           </li>
         </ul>
