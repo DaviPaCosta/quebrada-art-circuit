@@ -12,10 +12,12 @@ const pathFromUrl = (url: string | null) => {
 };
 
 Deno.serve(async (req) => {
-  const secret = Deno.env.get("CRON_SECRET");
-  if (!secret || req.headers.get("x-cron-secret") !== secret) return json({ error: "não autorizado" }, 401);
-
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  // O segredo é conferido direto no Vault (nome "cron_secret").
+  const given = req.headers.get("x-cron-secret") ?? "";
+  const { data: ok } = await admin.rpc("check_cron_secret", { p_secret: given });
+  if (!given || ok !== true) return json({ error: "não autorizado" }, 401);
   const { data, error } = await admin
     .from("stories")
     .select("id, src, poster")

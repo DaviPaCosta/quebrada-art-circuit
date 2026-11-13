@@ -1,5 +1,5 @@
 -- Agenda a limpeza de stories vencidos a cada hora (minuto 0).
--- Antes de rodar: guarde o mesmo segredo no Vault (nome cron_secret) e nos Secrets da função (CRON_SECRET).
+-- Antes de rodar: guarde um segredo no Vault com o nome cron_secret (a função confere direto nele).
 --   select vault.create_secret('<um texto longo e aleatório>', 'cron_secret');
 create extension if not exists pg_cron;
 create extension if not exists pg_net;

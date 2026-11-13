@@ -66,8 +66,7 @@ Para corrigir o papel de alguém, mude `role` para `aluno` ou `professor` na mes
 
 1. **SQL Editor:** rode `supabase/migrations/20261113000000_social.sql`. Depois rode `supabase/tests/social_check.sql`: todas as linhas com `ok = true`.
 2. **Edge Functions → Deploy a new function → Via Editor:** nome `expire-stories`, código de `supabase/functions/expire-stories/index.ts`. Em **Details**, desligue "Verify JWT".
-3. **Segredo da limpeza:** invente um texto longo e aleatório (ex.: 40 letras e números).
-   - Edge Functions → **Secrets** → adicione `CRON_SECRET` com esse texto.
-   - SQL Editor: `select vault.create_secret('<o mesmo texto>', 'cron_secret');`
+3. **Segredo da limpeza:** invente um texto longo e aleatório (ex.: 40 letras e números) e rode no SQL Editor
+   `select vault.create_secret('<o texto>', 'cron_secret');`. Depois rode `supabase/migrations/20261113000200_cron_check.sql`.
 4. **SQL Editor:** rode `supabase/migrations/20261113000100_cron_stories.sql` (agenda a limpeza de hora em hora).
 5. **Conta oficial:** crie a conta `@vozesdomuro` pelo app, confirme o e-mail e rode `supabase/seed/conta_oficial.sql`.
