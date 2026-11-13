@@ -6,6 +6,7 @@ const MESSAGES: [match: string, text: string][] = [
   ["invalid login credentials", "E-mail ou senha incorretos."],
   ["failed to fetch", "Sem conexão com a internet. Tente de novo."],
   ["invalid or has expired", "O link expirou. Peça um novo."],
+  ["profiles_username_key", "Esse nome de usuário já está em uso."],
 ];
 
 export function friendlyAuthError(message: string): string {

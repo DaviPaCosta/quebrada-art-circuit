@@ -59,10 +59,10 @@ function ProfileForm({ user }: { user: User }) {
   const toggleStyle = (c: Category) =>
     setForm((f) => ({ ...f, styles: f.styles.includes(c) ? f.styles.filter((s) => s !== c) : [...f.styles, c] }));
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return setError("Informe seu nome.");
-    const r = actions.updateProfile({ ...form, name: form.name.trim(), bio: form.bio.trim(), bairro: form.bairro.trim() });
+    const r = await actions.updateProfile({ ...form, name: form.name.trim(), bio: form.bio.trim(), bairro: form.bairro.trim() });
     if (!r.ok) return setError(r.error);
     toast.success("Perfil atualizado");
     navigate({ to: "/u/$username", params: { username: form.username.trim().toLowerCase().replace(/^@/, "") } });

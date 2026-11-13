@@ -2,13 +2,18 @@ import { useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { createSeedState } from "./mock-data";
 import * as L from "./logic";
-import { clearMedia, deleteMedia } from "./media-db";
+import * as Auth from "./auth";
+import { deleteMedia } from "./media-db";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type { AppState, MediaItem, ReportTarget, Settings, User } from "./types";
 
 const STORAGE_KEY = "vozes-do-muro:v1";
 
 let state: AppState = createSeedState();
 let hydrated = false;
+export type AuthStatus = "carregando" | "pronto" | "erro";
+let authStatus: AuthStatus = "carregando";
+let authListening = false;
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -50,8 +55,71 @@ export function hydrateStore() {
   } catch {
     /* dados corrompidos: começa do zero */
   }
+  // A sessão agora vem do Supabase; até ele responder, ninguém está logado.
+  state = { ...state, sessionUserId: null };
   hydrated = true;
   emit();
+  startAuth();
+}
+
+function setAuthStatus(next: AuthStatus) {
+  if (authStatus === next) return;
+  authStatus = next;
+  emit();
+}
+
+/** Coloca o perfil vindo do banco no estado local, mantendo foto/capa/destaque guardados no aparelho. */
+function applyOwnProfile(user: User) {
+  const local = state.users.find((u) => u.id === user.id);
+  const merged: User = {
+    ...user,
+    avatar: user.avatar ?? local?.avatar,
+    cover: user.cover ?? local?.cover,
+    pinnedPostId: local?.pinnedPostId,
+  };
+  const users = local ? state.users.map((u) => (u.id === user.id ? merged : u)) : [...state.users, merged];
+  set({ ...state, users, sessionUserId: user.id });
+}
+
+async function loadSession() {
+  try {
+    const { data } = await getSupabase().auth.getSession();
+    const session = data.session;
+    if (!session) {
+      if (state.sessionUserId) set({ ...state, sessionUserId: null });
+      setAuthStatus("pronto");
+      return;
+    }
+    const user = Auth.profileToUser(await Auth.fetchOwnProfile(session.user.id), session.user.email ?? "");
+    if (!user) return setAuthStatus("erro");
+    applyOwnProfile(user);
+    setAuthStatus("pronto");
+  } catch {
+    setAuthStatus("erro");
+  }
+}
+
+function startAuth() {
+  if (!isSupabaseConfigured()) return setAuthStatus("pronto");
+  if (authListening) return;
+  authListening = true;
+  getSupabase().auth.onAuthStateChange((event) => {
+    if (event === "PASSWORD_RECOVERY" && window.location.pathname !== "/nova-senha") {
+      window.location.assign("/nova-senha");
+      return;
+    }
+    // Não chamar o Supabase dentro do próprio aviso (pode travar): agenda para logo depois.
+    window.setTimeout(() => void loadSession(), 0);
+  });
+  void loadSession();
+}
+
+export function useAuthStatus(): AuthStatus {
+  return useSyncExternalStore(
+    subscribe,
+    () => authStatus,
+    () => "carregando" as AuthStatus,
+  );
 }
 
 function subscribe(l: () => void) {
@@ -110,18 +178,25 @@ export const actions = {
   signIn(_identifier: string, _password: string) {
     return { ok: false as const, error: "Login em atualização." };
   },
-  signOut() {
+  async signOut() {
+    if (isSupabaseConfigured()) await Auth.signOut();
     set({ ...state, sessionUserId: null });
   },
-  emailExists(email: string) {
-    return state.users.some((u) => u.email?.toLowerCase() === email.trim().toLowerCase());
+  retryAuth() {
+    setAuthStatus("carregando");
+    void loadSession();
   },
-  updateProfile(patch: L.ProfilePatch) {
+  async updateProfile(patch: L.ProfilePatch) {
     const id = me();
     if (!id) return { ok: false as const, error: "Entre na sua conta." };
-    const r = L.updateProfile(state, id, patch);
-    if (r.ok) set(r.state);
-    return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
+    const local = L.updateProfile(state, id, patch);
+    if (!local.ok) return local;
+    const remote = await Auth.saveOwnProfile(id, patch);
+    if (!remote.ok) return remote;
+    // Reaplica sobre o estado atual (pode ter mudado enquanto o banco respondia).
+    const next = L.updateProfile(state, id, patch);
+    if (next.ok) set(next.state);
+    return { ok: true as const };
   },
   deleteAccount() {
     const id = me();
@@ -230,10 +305,6 @@ export const actions = {
   },
   updateSettings(patch: Partial<Settings>) {
     set({ ...state, settings: { ...state.settings, ...patch } });
-  },
-  resetDemo() {
-    void clearMedia();
-    set(createSeedState());
   },
 };
 

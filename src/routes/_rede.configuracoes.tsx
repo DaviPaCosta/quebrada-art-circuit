@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, HelpCircle, LogOut, RotateCcw, ShieldCheck, Trash2, UserPen } from "lucide-react";
+import { ChevronRight, HelpCircle, LogOut, ShieldCheck, Trash2, UserPen } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ function SettingsPage() {
   const me = useCurrentUser()!;
   const settings = useAppState((s) => s.settings);
   const blockedUsers = useAppState((s) => s.users.filter((u) => (s.blocks[me.id] ?? []).includes(u.id)));
-  const [confirm, setConfirm] = useState<"sair" | "excluir" | "reset" | null>(null);
+  const [confirm, setConfirm] = useState<"sair" | "excluir" | null>(null);
 
   return (
     <div className="mx-auto max-w-xl space-y-8 px-4 pb-10 sm:px-0">
@@ -97,7 +97,10 @@ function SettingsPage() {
             <span className="block font-semibold">Mostrar bairro/cidade</span>
             <span className="text-xs text-muted-foreground">Exibe sua região no perfil</span>
           </span>
-          <Switch checked={me.showBairro} onCheckedChange={(v) => actions.updateProfile({ showBairro: v })} />
+          <Switch checked={me.showBairro} onCheckedChange={async (v) => {
+            const r = await actions.updateProfile({ showBairro: v });
+            if (!r.ok) toast.error(r.error);
+          }} />
         </Label>
         <div className="p-4">
           <p className="font-semibold">Perfis bloqueados</p>
@@ -130,10 +133,6 @@ function SettingsPage() {
           <span className="flex-1 font-semibold">Regras de convivência</span>
           <ChevronRight className="size-4 text-muted-foreground" />
         </Link>
-        <button onClick={() => setConfirm("reset")} className="flex w-full items-center gap-3 p-4 text-left hover:bg-muted">
-          <RotateCcw className="size-5" />
-          <span className="flex-1 font-semibold">Restaurar dados de demonstração</span>
-        </button>
       </Section>
 
       <div className="space-y-3">
@@ -151,8 +150,8 @@ function SettingsPage() {
         title="Sair da conta?"
         description="Você pode entrar de novo quando quiser."
         confirmLabel="Sair"
-        onConfirm={() => {
-          actions.signOut();
+        onConfirm={async () => {
+          await actions.signOut();
           navigate({ to: "/" });
         }}
       />
@@ -166,18 +165,6 @@ function SettingsPage() {
         onConfirm={() => {
           actions.deleteAccount();
           toast.success("Conta excluída");
-          navigate({ to: "/" });
-        }}
-      />
-      <ConfirmDialog
-        open={confirm === "reset"}
-        onOpenChange={(o) => !o && setConfirm(null)}
-        title="Restaurar demonstração?"
-        description="Todas as contas e publicações criadas neste aparelho serão apagadas e os exemplos originais voltam."
-        confirmLabel="Restaurar"
-        destructive
-        onConfirm={() => {
-          actions.resetDemo();
           navigate({ to: "/" });
         }}
       />
