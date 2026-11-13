@@ -307,6 +307,29 @@ export const actions = {
       (s) => ({ ...s, posts: [post, ...s.posts], comments: [...s.comments, ...removedComments] }),
     );
   },
+  async setArchived(postId: string, on: boolean) {
+    const id = me();
+    if (!id) return;
+    await optimistic(
+      (s) => L.setArchived(s, id, postId, on),
+      () => Api.setArchived(postId, on),
+      (s) => L.setArchived(s, id, postId, !on),
+    );
+  },
+  async editPostText(postId: string, patch: L.PostTextPatch) {
+    const id = me();
+    if (!id) return { ok: false as const, error: "Entre na sua conta." };
+    const before = state.posts.find((p) => p.id === postId);
+    const r = L.editPostText(state, id, postId, patch);
+    if (!r.ok || !before) return r.ok ? { ok: false as const, error: "Publicação não encontrada." } : r;
+    const clean = r.state.posts.find((p) => p.id === postId)!;
+    const ok = await optimistic(
+      () => r.state,
+      () => Api.updatePostText(postId, { title: clean.title, description: clean.description, tags: clean.tags }),
+      (s) => ({ ...s, posts: s.posts.map((p) => (p.id === postId ? { ...p, title: before.title, description: before.description, tags: before.tags } : p)) }),
+    );
+    return ok ? { ok: true as const } : { ok: false as const, error: "Não conseguimos salvar a legenda." };
+  },
   async createStory(media: MediaItem, caption: string): Promise<string | null> {
     const id = me();
     if (!id) return null;

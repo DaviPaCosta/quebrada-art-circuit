@@ -235,3 +235,24 @@ describe("respostas", () => {
     expect(L.rootCommentId(comments, undefined)).toBeUndefined();
   });
 });
+
+describe("arquivar e editar posts", () => {
+  const s0 = createSeedState();
+  const p = s0.posts[0]!;
+  it("arquivado some do feed e vai para os arquivados do autor", () => {
+    const s = L.setArchived(s0, p.authorId, p.id, true);
+    expect(L.visiblePosts(s, "u8").some((x) => x.id === p.id)).toBe(false);
+    expect(L.archivedPosts(s, p.authorId).map((x) => x.id)).toEqual([p.id]);
+    expect(L.archivedPosts(s, "u8")).toEqual([]);
+    expect(L.visiblePosts(L.setArchived(s, p.authorId, p.id, false), "u8").some((x) => x.id === p.id)).toBe(true);
+  });
+  it("só o autor arquiva", () => {
+    expect(L.setArchived(s0, "outra-pessoa", p.id, true)).toBe(s0);
+  });
+  it("edita a legenda com validação", () => {
+    const r = L.editPostText(s0, p.authorId, p.id, { title: " Novo título ", description: "Nova", tags: ["a"] });
+    expect(r.ok && r.state.posts.find((x) => x.id === p.id)).toMatchObject({ title: "Novo título", description: "Nova", tags: ["a"] });
+    expect(L.editPostText(s0, p.authorId, p.id, { title: "  ", description: "", tags: [] })).toEqual({ ok: false, error: "Dê um título para a obra." });
+    expect(L.editPostText(s0, "outra-pessoa", p.id, { title: "x", description: "", tags: [] })).toEqual({ ok: false, error: "Só quem publicou pode editar." });
+  });
+});

@@ -52,7 +52,7 @@ function ProfileForm({ user }: { user: User }) {
     cover: user.cover,
     pinnedPostId: user.pinnedPostId,
   });
-  const ownPosts = useAppState((s) => s.posts.filter((p) => p.authorId === user.id && !p.removed));
+  const ownPosts = useAppState((s) => s.posts.filter((p) => p.authorId === user.id && !p.removed && !p.archived));
   const pinned = ownPosts.find((p) => p.id === form.pinnedPostId);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");

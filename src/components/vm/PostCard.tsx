@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bookmark, Clapperboard, Flag, GalleryHorizontal, Heart, MessageCircle, MoreHorizontal, Share2, ShieldOff, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Bookmark, Clapperboard, Flag, GalleryHorizontal, Heart, MessageCircle, MoreHorizontal, Pencil, Share2, ShieldOff, Trash2 } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,7 @@ import { UserAvatar } from "./UserAvatar";
 import { CategoryTag } from "./CategoryChips";
 import { ReportDialog } from "./ReportDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { EditPostDialog } from "./EditPostDialog";
 import { MediaImage } from "./media/MediaImage";
 import { MentionText } from "./Mentions";
 import { MediaViewer } from "./media/MediaViewer";
@@ -44,6 +45,7 @@ export const PostCard = memo(function PostCard({
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const lastTap = useRef(0);
 
   const onImageTap = () => {
@@ -95,9 +97,22 @@ export const PostCard = memo(function PostCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {isMine ? (
-                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
-                  <Trash2 /> Excluir publicação
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil /> Editar legenda
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await actions.setArchived(post.id, !post.archived);
+                      toast.success(post.archived ? "Publicação de volta no perfil" : "Arquivada: só você vê, na aba Arquivados");
+                    }}
+                  >
+                    {post.archived ? <ArchiveRestore /> : <Archive />} {post.archived ? "Desarquivar" : "Arquivar"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 /> Excluir publicação
+                  </DropdownMenuItem>
+                </>
               ) : (
                 <>
                   <DropdownMenuItem onClick={() => setReportOpen(true)}>
@@ -198,6 +213,7 @@ export const PostCard = memo(function PostCard({
       </div>
 
       <ReportDialog open={reportOpen} onOpenChange={setReportOpen} targetType="post" targetId={post.id} label="publicação" />
+      {isMine && <EditPostDialog post={post} open={editOpen} onOpenChange={setEditOpen} />}
       <ConfirmDialog
         open={blockOpen}
         onOpenChange={setBlockOpen}

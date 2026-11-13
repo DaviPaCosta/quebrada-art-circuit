@@ -167,6 +167,18 @@ export async function setSave(postId: string, on: boolean) {
   check(error, "Não conseguimos salvar.");
 }
 
+export async function setArchived(postId: string, archived: boolean) {
+  const { data, error } = await getSupabase().from("posts").update({ archived }).eq("id", postId).select("id");
+  check(error, "Não conseguimos arquivar a publicação.");
+  if (!data?.length) throw new Error("Não conseguimos arquivar a publicação.");
+}
+
+export async function updatePostText(postId: string, patch: { title: string; description: string; tags: string[] }) {
+  const { data, error } = await getSupabase().from("posts").update(patch).eq("id", postId).select("id");
+  check(error, "Não conseguimos salvar a legenda.");
+  if (!data?.length) throw new Error("Não conseguimos salvar a legenda.");
+}
+
 export async function setRemoved(postId: string, removed: boolean) {
   const { data, error } = await getSupabase().from("posts").update({ removed }).eq("id", postId).select("id");
   check(error, "Não conseguimos atualizar a publicação.");

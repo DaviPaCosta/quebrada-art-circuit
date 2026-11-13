@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Flag, Grid3x3, MapPin, MoreHorizontal, Settings, ShieldOff, Pin } from "lucide-react";
+import { Archive, Flag, Grid3x3, MapPin, MoreHorizontal, Settings, ShieldOff, Pin } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/vm/ConfirmDialog";
 import { PostGrid } from "@/components/vm/PostCard";
 import { ReportDialog } from "@/components/vm/ReportDialog";
 import { UserAvatar } from "@/components/vm/UserAvatar";
-import { isBlockedBetween, visiblePosts, postCover } from "@/lib/logic";
+import { archivedPosts, isBlockedBetween, visiblePosts, postCover } from "@/lib/logic";
 import { MediaImage } from "@/components/vm/media/MediaImage";
 import { MentionText } from "@/components/vm/Mentions";
 import { cn } from "@/lib/utils";
@@ -39,6 +39,7 @@ function Profile() {
   const [list, setList] = useState<"seguidores" | "seguindo" | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [tab, setTab] = useState<"galeria" | "arquivados">("galeria");
 
   if (!user) {
     return (
@@ -60,6 +61,8 @@ function Profile() {
   const followers = state.users.filter((u) => (state.follows[u.id] ?? []).includes(user.id));
   const following = state.users.filter((u) => (state.follows[user.id] ?? []).includes(u.id));
   const likes = posts.reduce((n, p) => n + p.likes.length, 0);
+  const archived = isMe ? archivedPosts(state, meId) : [];
+  const showing = isMe && tab === "arquivados" ? archived : posts;
 
   return (
     <div className="pb-10">
@@ -143,13 +146,32 @@ function Profile() {
       </section>
 
       {pinned && <section className="mt-6 px-4 sm:px-0"><h2 className="mb-3 flex items-center gap-2 text-lg"><Pin className="size-4 text-accent" />Obra em destaque</h2><Link to="/post/$id" params={{ id: pinned.id }} className="flex items-center gap-4 border-y border-border py-3"><MediaImage {...postCover(pinned)} className="size-20 rounded-md object-cover" /><span className="min-w-0"><span className="block break-words font-bold">{pinned.title}</span><span className="text-sm text-muted-foreground">{pinned.likes.length} curtidas · {pinned.category}</span></span></Link></section>}
-      <div className="mt-6 flex items-center justify-center gap-2 border-t border-border py-3 text-sm font-bold uppercase tracking-wider">
-        <Grid3x3 className="size-4" /> Galeria
-      </div>
+      {isMe ? (
+        <div role="tablist" className="mt-6 flex border-t border-border text-sm font-bold uppercase tracking-wider">
+          {(["galeria", "arquivados"] as const).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={cn("flex flex-1 items-center justify-center gap-2 py-3 text-muted-foreground", tab === t && "border-t-2 border-primary text-foreground")}
+            >
+              {t === "galeria" ? <Grid3x3 className="size-4" /> : <Archive className="size-4" />}
+              {t === "galeria" ? "Galeria" : `Arquivados (${archived.length})`}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-6 flex items-center justify-center gap-2 border-t border-border py-3 text-sm font-bold uppercase tracking-wider">
+          <Grid3x3 className="size-4" /> Galeria
+        </div>
+      )}
       {blocked ? (
         <p className="px-6 py-12 text-center text-muted-foreground">Você não pode ver as obras deste perfil.</p>
-      ) : posts.length ? (
-        <PostGrid posts={posts} />
+      ) : showing.length ? (
+        <PostGrid posts={showing} />
+      ) : isMe && tab === "arquivados" ? (
+        <p className="px-6 py-12 text-center text-muted-foreground">Nada arquivado. No ⋯ de uma publicação sua, toque em Arquivar para guardá-la só para você.</p>
       ) : (
         <div className="px-6 py-12 text-center">
           <p className="font-marker text-xl text-accent">Galeria em branco</p>

@@ -67,6 +67,8 @@ export interface Post {
   likes: string[];
   createdAt: string;
   removed?: boolean;
+  /** Guardado pelo autor: só ele vê (aba Arquivados do perfil). */
+  archived?: boolean;
 }
 
 /** Story: foto ou vídeo que some depois de 24 horas. */

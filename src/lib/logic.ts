@@ -205,8 +205,38 @@ export function isBlockedBetween(s: Pick<AppState, "blocks">, a: string, b: stri
 /** Publicações que um usuário pode ver: sem removidas e sem autores bloqueados. */
 export function visiblePosts(s: AppState, viewerId: string | null): Post[] {
   return s.posts
-    .filter((p) => !p.removed && (!viewerId || !isBlockedBetween(s, viewerId, p.authorId)))
+    .filter((p) => !p.removed && !p.archived && (!viewerId || !isBlockedBetween(s, viewerId, p.authorId)))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Posts que a própria pessoa arquivou. */
+export function archivedPosts(s: Pick<AppState, "posts">, userId: string): Post[] {
+  return s.posts
+    .filter((p) => p.archived && !p.removed && p.authorId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Arquiva ou desarquiva; só o autor pode. */
+export function setArchived(s: AppState, userId: string, postId: string, on: boolean): AppState {
+  if (!s.posts.some((p) => p.id === postId && p.authorId === userId)) return s;
+  return { ...s, posts: s.posts.map((p) => (p.id === postId ? { ...p, archived: on } : p)) };
+}
+
+export type PostTextPatch = { title: string; description: string; tags: string[] };
+
+/** Edita título, descrição e hashtags do próprio post. */
+export function editPostText(s: AppState, userId: string, postId: string, patch: PostTextPatch): Result {
+  const post = s.posts.find((p) => p.id === postId);
+  if (!post || post.authorId !== userId) return { ok: false, error: "Só quem publicou pode editar." };
+  const title = patch.title.trim();
+  if (!title) return { ok: false, error: "Dê um título para a obra." };
+  if (title.length > 80) return { ok: false, error: "O título pode ter até 80 caracteres." };
+  const description = patch.description.trim();
+  if (description.length > 2000) return { ok: false, error: "A descrição pode ter até 2000 caracteres." };
+  return {
+    ok: true,
+    state: { ...s, posts: s.posts.map((p) => (p.id === postId ? { ...p, title, description, tags: patch.tags } : p)) },
+  };
 }
 
 export type NewPostData = {
@@ -256,7 +286,7 @@ export function highlightPosts(
   const professors = new Set(s.users.filter((u) => u.role === "professor").map((u) => u.id));
   const since = nowMs - days * 24 * 60 * 60 * 1000;
   return s.posts
-    .filter((p) => !p.removed && professors.has(p.authorId) && !isBlockedBetween(s, viewerId, p.authorId))
+    .filter((p) => !p.removed && !p.archived && professors.has(p.authorId) && !isBlockedBetween(s, viewerId, p.authorId))
     .filter((p) => Date.parse(p.createdAt) >= since)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, max);

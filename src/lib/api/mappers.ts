@@ -14,6 +14,7 @@ export interface PostRow {
   tags: string[];
   region: string | null;
   removed: boolean;
+  archived?: boolean;
   created_at: string;
 }
 
@@ -177,6 +178,7 @@ export function rowsToSocial(r: SocialRows): SocialSlice {
     likes: postLikes[p.id] ?? [],
     createdAt: p.created_at,
     removed: p.removed,
+    archived: p.archived ?? false,
   }));
 
   const comments: Comment[] = r.comments.map((c) => ({
