@@ -113,7 +113,9 @@ Enquanto posts/stories ainda estão no aparelho (até a Etapa 2):
 - `store.ts` escuta `supabase.auth.onAuthStateChange`; ao haver sessão, busca o próprio perfil e o
   insere/atualiza em `state.users`, com `sessionUserId = auth.uid`.
 - Campo `password` sai de `User`; `signUp`/`signIn` locais saem de `logic.ts`.
-- `migrateState` com nova `version` remove usuários de demonstração e senhas antigas.
+- `migrateState` com nova `version` remove as senhas antigas. As contas de demonstração ficam
+  só como autoras do conteúdo de exemplo (sem login possível) até a Etapa 2, para não deixar
+  posts órfãos.
 - O layout `_rede` espera, além da hidratação, a sessão do Supabase ser resolvida.
 - **O app não deve ser divulgado antes do fim da Etapa 2.**
 
