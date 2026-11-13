@@ -7,6 +7,7 @@ const MESSAGES: [match: string, text: string][] = [
   ["failed to fetch", "Sem conexão com a internet. Tente de novo."],
   ["invalid or has expired", "O link expirou. Peça um novo."],
   ["profiles_username_key", "Esse nome de usuário já está em uso."],
+  ["rate limit", "Muitos e-mails enviados em pouco tempo. Espere alguns minutos e tente de novo."],
 ];
 
 export function friendlyAuthError(message: string): string {
