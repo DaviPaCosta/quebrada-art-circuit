@@ -20,13 +20,10 @@ Deno.serve(async (req) => {
   if (!token) return json({ error: "não autenticado" }, 401);
 
   // Descobre quem está chamando a partir do próprio token (nunca de um id enviado no corpo).
-  const asUser = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data, error } = await asUser.auth.getUser(token);
+  const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return json({ error: "não autenticado" }, 401);
 
-  const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { error: delError } = await admin.auth.admin.deleteUser(data.user.id);
   if (delError) return json({ error: delError.message }, 500);
   return json({ ok: true });
