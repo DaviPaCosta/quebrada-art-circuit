@@ -17,7 +17,7 @@ Continuam no aparelho: agenda de eventos (`eventInterest`) e configurações de 
 | Vídeos | Comprimidos no aparelho para 480p (~1 Mbps) com barra de progresso; sem suporte → só aceita vídeo de até 15 MB. Duração máxima 60 s. |
 | Fotos | Compressão atual (WebP até 1080 px). |
 | Armazenamento | Bucket `media` público para leitura, nomes aleatórios (`<user_id>/<uuid>.<ext>`); cada um só grava/apaga na própria pasta. |
-| Feed | Faixa "Destaques": posts de professores dos últimos 7 dias, até 10. Abaixo, todos os posts (menos bloqueados/removidos), mais novo primeiro, 20 por página. |
+| Feed | Faixa "Destaques": posts de professores dos últimos 7 dias, até 10. Abaixo, todos os posts (menos bloqueados/removidos), mais novo primeiro, com a rolagem infinita que já existe. O app baixa os 300 posts mais recentes (e suas mídias, curtidas e comentários) ao entrar e ao voltar para a aba; para ~80 pessoas isso cobre meses de uso. |
 | Conteúdo de exemplo | Conta oficial `@vozesdomuro` criada pelo dono; SQL de seed com 6–8 posts usando as imagens `seed:` do app. Perfis falsos e stories de exemplo saem. |
 | Notificações | Criadas pelo banco (triggers/RPC), nunca pelo cliente direto. |
 | Stories | Vencem em 24 h; Edge Function agendada (pg_cron, 1x/hora) apaga linhas e arquivos vencidos. |
@@ -52,7 +52,7 @@ Storage: bucket `media` (público, limite 20 MB por arquivo, tipos image/webp, i
 ## 4. Front
 
 - `src/lib/api/` (novo): leitura e escrita por domínio (`posts.ts`, `comments.ts`, `social.ts`, `stories.ts`, `notifications.ts`, `reports.ts`, `media.ts`) + `mappers.ts` puro (linha do banco → tipos do app), testado.
-- `store.ts`: após login, carrega feed (página 1 + destaques), seguidos/salvos/bloqueados, notificações e stories; perfis citados são buscados sob demanda em `public_profiles`. Ações chamam `api/*` de forma otimista usando as funções puras de `logic.ts`; erro → reverte + toast.
+- `store.ts`: após login (e ao voltar para a aba, no máximo 1x/min), baixa os 300 posts mais recentes com mídias, curtidas e comentários, todos os `public_profiles`, seguidos/salvos/bloqueados próprios, notificações e stories ativos. Ações chamam `api/*` de forma otimista usando as funções puras de `logic.ts`; erro → reverte + toast.
 - `logic.ts`: novas funções puras `highlightPosts(posts, users, nowMs)` e `videoPlan(support, sizeBytes, durationSec)` → `'comprimir' | 'enviar' | 'recusar'` com mensagem; notificações deixam de ser criadas no cliente (o banco cria).
 - Mídia: `uploadMedia(blob, ext)` envia ao bucket e devolve a URL pública; `compressVideo(file, onProgress)` usa `<video>` + `canvas.captureStream()` + `MediaRecorder` (480p, 1 Mbps; `video/webm` ou `video/mp4`); `putMedia`/IndexedDB deixa de ser usado para conteúdo novo.
 - Telas: feed com faixa Destaques e "carregar mais"; perfil busca perfil público + posts; post busca post + comentários; explorar/mais curtidos via consultas; notificações; salvos; moderação (fila de denúncias); editar perfil envia avatar/capa ao bucket.
