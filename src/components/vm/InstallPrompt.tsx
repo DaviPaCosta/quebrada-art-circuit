@@ -1,9 +1,11 @@
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { APK_URL, downloadOffer, useInstallPrompt } from "@/lib/pwa";
+import { APK_URL, dismissedRecently, downloadOffer, useInstallPrompt } from "@/lib/pwa";
 
-const DISMISS_KEY = "vozes-do-muro:instalar-dispensado";
+// Chave nova: o "fechar" do aviso antigo não vale mais; agora guarda a data e esconde só por 7 dias.
+const DISMISS_KEY = "vozes-do-muro:baixar-app-fechado-em";
+const SITE = "vozesdomuro.lovable.app";
 
 /** Passo a passo para iPhone (o Safari não deixa sites mostrarem botão de instalar). */
 function IosSteps() {
@@ -45,23 +47,23 @@ export function InstallSection() {
 
 /** Botão flutuante "Baixar app" no canto, acima da barra de navegação. */
 export function DownloadAppButton() {
-  const { hint, canPrompt, install } = useInstallPrompt();
+  const { hint, standalone, canPrompt, install } = useInstallPrompt();
   const [dismissed, setDismissed] = useState(true);
   const [open, setOpen] = useState(false);
   useEffect(() => {
     try {
-      setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
+      setDismissed(dismissedRecently(localStorage.getItem(DISMISS_KEY), Date.now()));
     } catch {
       setDismissed(false);
     }
   }, []);
-  const offer = downloadOffer(hint, APK_URL, canPrompt);
+  const offer = downloadOffer(hint, APK_URL, canPrompt, standalone);
   if (!offer || dismissed) return null;
 
   const close = () => {
     setDismissed(true);
     try {
-      localStorage.setItem(DISMISS_KEY, "1");
+      localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
       /* sem armazenamento: some só nesta visita */
     }
@@ -87,6 +89,18 @@ export function DownloadAppButton() {
             <>
               <p className="font-bold">Instalar no iPhone</p>
               <IosSteps />
+            </>
+          ) : offer === "computador" ? (
+            <>
+              <p className="font-bold">Baixe no celular</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Abra <strong className="text-foreground">{SITE}</strong> no navegador do celular e toque em “Baixar app”.
+              </p>
+              {APK_URL && (
+                <a href={APK_URL} download className="mt-3 inline-flex items-center gap-2 text-sm font-bold text-primary underline">
+                  <Download className="size-4" /> Baixar o APK aqui (para mandar pelo WhatsApp)
+                </a>
+              )}
             </>
           ) : (
             <>

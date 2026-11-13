@@ -18,11 +18,21 @@ export function downloadOffer(
   hint: "android" | "ios" | null,
   apkUrl: string | null,
   canPrompt: boolean,
-): "apk" | "instalar" | "menu" | "ios" | null {
+  standalone = false,
+): "apk" | "instalar" | "menu" | "ios" | "computador" | null {
+  if (standalone) return null; // já está no app
   if (hint === "ios") return "ios";
-  if (hint !== "android") return null;
+  if (hint !== "android") return "computador";
   if (apkUrl) return "apk";
   return canPrompt ? "instalar" : "menu";
+}
+
+/** Quem fechou o botão não vê de novo por 7 dias. */
+export const DISMISS_DAYS = 7;
+export function dismissedRecently(stored: string | null, nowMs: number): boolean {
+  const at = Number(stored);
+  if (!stored || !Number.isFinite(at)) return false;
+  return nowMs - at < DISMISS_DAYS * 24 * 60 * 60 * 1000;
 }
 
 /** O app foi aberto pelo ícone (tela cheia)? */
@@ -61,7 +71,9 @@ if (typeof window !== "undefined") {
 export function useInstallPrompt() {
   const [, force] = useState(0);
   const [hint, setHint] = useState<"android" | "ios" | null>(null);
+  const [standalone, setStandalone] = useState(true); // até saber, não mostra nada
   useEffect(() => {
+    setStandalone(isStandalone());
     setHint(installHint(navigator.userAgent, isStandalone()));
     const s = () => force((n) => n + 1);
     subscribers.add(s);
@@ -71,6 +83,7 @@ export function useInstallPrompt() {
   }, []);
   return {
     hint,
+    standalone,
     canPrompt: deferred !== null,
     async install() {
       if (!deferred) return false;
