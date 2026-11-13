@@ -68,15 +68,17 @@ function draw(source: CanvasImageSource, sw: number, sh: number, aspect: CropAsp
   canvas.height = Math.round(r.height * scale);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Seu navegador não suporta edição de imagem.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(source, r.x, r.y, r.width, r.height, 0, 0, canvas.width, canvas.height);
   return canvas;
 }
 
-/** Recorta e reduz a foto (máx. 1080 px) em WebP/JPEG. */
-export async function renderImage(url: string, aspect: CropAspect, pos: number, max = 1080) {
+/** Recorta e reduz a foto (máx. 1440 px) em WebP/JPEG, com pouca perda de detalhe. */
+export async function renderImage(url: string, aspect: CropAspect, pos: number, max = 1440) {
   const img = await loadImage(url);
   const canvas = draw(img, img.naturalWidth, img.naturalHeight, aspect, pos, max);
-  return { blob: await canvasToBlob(canvas, 0.82), width: canvas.width, height: canvas.height };
+  return { blob: await canvasToBlob(canvas, 0.88), width: canvas.width, height: canvas.height };
 }
 
 /** Captura um quadro do vídeo para usar como capa estática. */

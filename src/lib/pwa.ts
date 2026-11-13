@@ -10,6 +10,21 @@ export function installHint(userAgent: string, standalone: boolean): "android" |
   return null;
 }
 
+/** Endereço do APK no próprio site (null até o APK ser gerado no PWABuilder). */
+export const APK_URL: string | null = null;
+
+/** O que o botão "Baixar app" faz neste aparelho. */
+export function downloadOffer(
+  hint: "android" | "ios" | null,
+  apkUrl: string | null,
+  canPrompt: boolean,
+): "apk" | "instalar" | "menu" | "ios" | null {
+  if (hint === "ios") return "ios";
+  if (hint !== "android") return null;
+  if (apkUrl) return "apk";
+  return canPrompt ? "instalar" : "menu";
+}
+
 /** O app foi aberto pelo ícone (tela cheia)? */
 export function isStandalone(): boolean {
   if (typeof window === "undefined") return false;

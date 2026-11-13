@@ -1,4 +1,4 @@
-import { CameraOff, Image as ImageIcon, RefreshCcw, X, Zap, ZapOff } from "lucide-react";
+import { Aperture, CameraOff, Image as ImageIcon, RefreshCcw, X, Zap, ZapOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clipTooShort, PHOTO_PRESS_MS, pickRecorderMime, recordProgress, shouldStopRecording } from "@/lib/camera";
 import { cn } from "@/lib/utils";
@@ -41,6 +41,7 @@ export function CameraCapture({
   const recordStart = useRef(0);
   const raf = useRef<number | undefined>(undefined);
   const galleryRef = useRef<HTMLInputElement>(null);
+  const nativeRef = useRef<HTMLInputElement>(null);
   const recordingRef = useRef(false);
   /** Saiu da câmera: nada que ainda esteja terminando de gravar deve ser entregue. */
   const cancelled = useRef(false);
@@ -73,7 +74,8 @@ export function CameraCapture({
         setError({ title: "Câmera indisponível", text: "Este navegador não permite usar a câmera aqui. Use a galeria." });
         return;
       }
-      const video = { facingMode: { ideal: facing }, aspectRatio: { ideal: 9 / 16 }, height: { ideal: 1280 } };
+      // Vídeo ao vivo em Full HD (bom e leve). A foto sai do sensor em resolução cheia (ImageCapture) quando possível.
+      const video = { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } };
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
@@ -94,8 +96,11 @@ export function CameraCapture({
         await el.play().catch(() => {});
       }
       const track = stream.getVideoTracks()[0];
-      const caps = (track?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { torch?: boolean };
+      const caps = (track?.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { torch?: boolean; focusMode?: string[] };
       setTorchSupported(Boolean(caps.torch));
+      if (caps.focusMode?.includes("continuous")) {
+        void track?.applyConstraints({ advanced: [{ focusMode: "continuous" } as MediaTrackConstraintSet] }).catch(() => {});
+      }
       setError(null);
       setReady(true);
     }
@@ -132,22 +137,30 @@ export function CameraCapture({
     }
   };
 
-  const takePhoto = () => {
+  /** Foto: usa o sensor em resolução cheia quando o celular permite (Android); senão, um quadro do vídeo. */
+  const takePhoto = async () => {
     const el = videoRef.current;
     if (!el || !el.videoWidth) return;
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 150);
+    const deliver = (blob: Blob | null) => {
+      if (blob && !cancelled.current) onFiles([new File([blob], `foto-${Date.now()}.jpg`, { type: blob.type || "image/jpeg" })]);
+    };
+    const track = streamRef.current?.getVideoTracks()[0];
+    const ImageCaptureCtor = (window as unknown as { ImageCapture?: new (t: MediaStreamTrack) => { takePhoto: (o?: object) => Promise<Blob> } }).ImageCapture;
+    if (track && ImageCaptureCtor) {
+      try {
+        const photo = await new ImageCaptureCtor(track).takePhoto(torch ? { fillLightMode: "flash" } : {});
+        return deliver(photo);
+      } catch {
+        /* alguns aparelhos não deixam: usa o quadro do vídeo */
+      }
+    }
     const canvas = document.createElement("canvas");
     canvas.width = el.videoWidth;
     canvas.height = el.videoHeight;
     canvas.getContext("2d")?.drawImage(el, 0, 0);
-    setFlash(true);
-    window.setTimeout(() => setFlash(false), 150);
-    canvas.toBlob(
-      (blob) => {
-        if (blob && !cancelled.current) onFiles([new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" })]);
-      },
-      "image/jpeg",
-      0.92,
-    );
+    canvas.toBlob(deliver, "image/jpeg", 0.95);
   };
 
   const stopRecording = useCallback(() => {
@@ -163,15 +176,15 @@ export function CameraCapture({
 
   const startRecording = () => {
     const stream = streamRef.current;
-    if (!stream || typeof MediaRecorder === "undefined") return takePhoto();
+    if (!stream || typeof MediaRecorder === "undefined") return void takePhoto();
     const mime = pickRecorderMime((t) => MediaRecorder.isTypeSupported(t));
-    if (!mime) return takePhoto();
+    if (!mime) return void takePhoto();
     let recorder: MediaRecorder;
     try {
       // 1,5 Mbps: um minuto fica em ~11 MB, abaixo do limite de quem não consegue comprimir.
       recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_500_000 });
     } catch {
-      return takePhoto();
+      return void takePhoto();
     }
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
@@ -182,7 +195,7 @@ export function CameraCapture({
       const type = mime.split(";")[0] ?? "video/webm";
       const blob = new Blob(chunks, { type });
       // Soltou logo depois de começar: vira foto em vez de um vídeo de meio segundo.
-      if (clipTooShort(elapsed)) return takePhoto();
+      if (clipTooShort(elapsed)) return void takePhoto();
       if (blob.size > 0) onFiles([new File([blob], `video-${Date.now()}.${type.endsWith("mp4") ? "mp4" : "webm"}`, { type })]);
     };
     recorderRef.current = recorder;
@@ -212,7 +225,7 @@ export function CameraCapture({
     const heldMs = performance.now() - pressStart.current;
     pressStart.current = 0;
     if (recordingRef.current) stopRecording();
-    else if (heldMs < PHOTO_PRESS_MS && e.type !== "pointercancel") takePhoto();
+    else if (heldMs < PHOTO_PRESS_MS && e.type !== "pointercancel") void takePhoto();
     // Senão: a gravação já parou sozinha nos 60 s; soltar o dedo não tira foto.
   };
 
@@ -259,6 +272,14 @@ export function CameraCapture({
             ● {Math.floor(progress * 60)}s
           </span>
         )}
+        <button
+          type="button"
+          onClick={() => nativeRef.current?.click()}
+          className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-2 text-xs font-bold"
+          aria-label="Usar a câmera do celular (melhor qualidade)"
+        >
+          <Aperture className="size-4" /> Câmera do celular
+        </button>
         {torchSupported && facing === "environment" ? (
           <button type="button" onClick={toggleTorch} aria-label={torch ? "Desligar flash" : "Ligar flash"} className="rounded-full bg-black/40 p-2">
             {torch ? <Zap className="size-6 fill-current" /> : <ZapOff className="size-6" />}
@@ -318,6 +339,19 @@ export function CameraCapture({
       </div>
       <p className="relative pb-4 text-center text-xs text-white/70">Toque para foto · segure para vídeo</p>
 
+      {/* Câmera nativa do celular: melhor qualidade (HDR, modo noite). */}
+      <input
+        ref={nativeRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (files.length) onFiles(files);
+        }}
+      />
       <input
         ref={galleryRef}
         type="file"

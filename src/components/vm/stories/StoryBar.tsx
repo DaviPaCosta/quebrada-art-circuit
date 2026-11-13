@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Clapperboard, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { UserAvatar } from "@/components/vm/UserAvatar";
 import { storyGroups, type StoryGroup } from "@/lib/logic";
@@ -56,12 +55,6 @@ export function StoryBar() {
 
         </div>
 
-        <Link to="/reels" className="flex w-16 shrink-0 flex-col items-center gap-1">
-          <span className="flex size-[60px] items-center justify-center rounded-full border-2 border-primary bg-card text-primary">
-            <Clapperboard className="size-6" />
-          </span>
-          <span className="w-full truncate text-center text-[11px] font-semibold text-primary">Reels</span>
-        </Link>
 
         {others.map((g) => (
           <button

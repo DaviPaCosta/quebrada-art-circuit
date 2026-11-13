@@ -3,6 +3,7 @@ import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, Me
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
+import { DownloadAppButton } from "./InstallPrompt";
 import { LogoLink } from "./Logo";
 import { UserAvatar } from "./UserAvatar";
 
@@ -68,6 +69,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+
+      {!path.startsWith("/publicar") && <DownloadAppButton />}
 
       <main id="conteudo" className="mx-auto w-full min-w-0 max-w-5xl px-0 sm:px-4">
         {children}

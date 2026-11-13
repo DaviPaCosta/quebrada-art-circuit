@@ -20,3 +20,21 @@ describe("dica de instalar o app", () => {
     expect(installHint(DESKTOP, false)).toBeNull();
   });
 });
+
+import { downloadOffer } from "./pwa";
+
+describe("botão Baixar app", () => {
+  it("Android baixa o APK quando ele existe", () => {
+    expect(downloadOffer("android", "/app/vozes-do-muro.apk", false)).toBe("apk");
+  });
+  it("Android sem APK usa o instalar do navegador, ou ensina pelo menu", () => {
+    expect(downloadOffer("android", null, true)).toBe("instalar");
+    expect(downloadOffer("android", null, false)).toBe("menu");
+  });
+  it("iPhone mostra o passo a passo", () => {
+    expect(downloadOffer("ios", "/app/vozes-do-muro.apk", false)).toBe("ios");
+  });
+  it("dentro do app ou no computador não aparece", () => {
+    expect(downloadOffer(null, "/app/vozes-do-muro.apk", true)).toBeNull();
+  });
+});

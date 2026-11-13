@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArtistCard } from "@/components/vm/ArtistCard";
-import { InstallBanner } from "@/components/vm/InstallPrompt";
 import { PostCard } from "@/components/vm/PostCard";
 import { StoryBar } from "@/components/vm/stories/StoryBar";
 import { isBlockedBetween, visiblePosts } from "@/lib/logic";
@@ -60,7 +59,6 @@ function Feed() {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="mx-auto w-full min-w-0 max-w-xl">
         <StoryBar />
-        <InstallBanner />
 
         <div role="tablist" className="sticky top-14 z-20 mt-3 flex border-b border-border bg-background/95 backdrop-blur">
           {(["todos", "seguindo"] as const).map((t) => (
