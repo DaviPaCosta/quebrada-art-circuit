@@ -212,3 +212,28 @@ describe("migração v5", () => {
     expect(s.posts).toHaveLength(seed.posts.length);
   });
 });
+
+describe("destaques e vídeos", () => {
+  const now = Date.parse("2026-11-13T12:00:00Z");
+  const base = createSeedState();
+  const prof = { ...base.users[0]!, id: "prof", role: "professor" as const };
+  const aluno = { ...base.users[1]!, id: "aluno", role: "aluno" as const };
+  const post = (id: string, authorId: string, daysAgo: number, extra = {}) => ({ ...base.posts[0]!, id, authorId, createdAt: new Date(now - daysAgo * 864e5).toISOString(), ...extra });
+  const s = { users: [prof, aluno], blocks: {}, posts: [post("a", "prof", 1), post("b", "aluno", 1), post("c", "prof", 8), post("d", "prof", 2, { removed: true }), post("e", "prof", 0)] };
+  it("destaca só professores dos últimos 7 dias, mais novo primeiro", () => {
+    expect(L.highlightPosts(s, "aluno", now).map((p) => p.id)).toEqual(["e", "a"]);
+  });
+  it("não destaca quem está bloqueado", () => {
+    expect(L.highlightPosts({ ...s, blocks: { aluno: ["prof"] } }, "aluno", now)).toEqual([]);
+  });
+  it("limita a 10", () => {
+    const many = { ...s, posts: Array.from({ length: 12 }, (_, i) => post(`p${i}`, "prof", i * 0.1)) };
+    expect(L.highlightPosts(many, "aluno", now)).toHaveLength(10);
+  });
+  it("decide como tratar o vídeo", () => {
+    expect(L.videoPlan({ canCompress: true }, 90e6, 50)).toEqual({ action: "comprimir" });
+    expect(L.videoPlan({ canCompress: false }, 10e6, 20)).toEqual({ action: "enviar" });
+    expect(L.videoPlan({ canCompress: false }, 20e6, 20)).toEqual({ action: "recusar", error: "Esse vídeo é grande demais para este aparelho. Grave um vídeo mais curto." });
+    expect(L.videoPlan({ canCompress: true }, 10e6, 61)).toEqual({ action: "recusar", error: "O vídeo pode ter no máximo 60 segundos." });
+  });
+});

@@ -234,6 +234,38 @@ export const MAX_VIDEO_SECONDS = 60;
 export const MAX_VIDEO_MB = 50;
 export const MAX_IMAGE_MB = 20;
 
+/* ---------- Destaques de professores ---------- */
+
+export const HIGHLIGHT_DAYS = 7;
+export const HIGHLIGHT_MAX = 10;
+
+/** Posts recentes de professores para a faixa "Destaques" do feed. */
+export function highlightPosts(s: Pick<AppState, "posts" | "users" | "blocks">, viewerId: string, nowMs: number): Post[] {
+  const professors = new Set(s.users.filter((u) => u.role === "professor").map((u) => u.id));
+  const since = nowMs - HIGHLIGHT_DAYS * 24 * 60 * 60 * 1000;
+  return s.posts
+    .filter((p) => !p.removed && professors.has(p.authorId) && !isBlockedBetween(s, viewerId, p.authorId))
+    .filter((p) => Date.parse(p.createdAt) >= since)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, HIGHLIGHT_MAX);
+}
+
+/* ---------- Vídeos: comprimir, enviar ou recusar ---------- */
+
+export type VideoSupport = { canCompress: boolean };
+export const VIDEO_FALLBACK_MB = 15;
+
+export function videoPlan(
+  support: VideoSupport,
+  sizeBytes: number,
+  durationSec: number,
+): { action: "comprimir" | "enviar" } | { action: "recusar"; error: string } {
+  if (durationSec > MAX_VIDEO_SECONDS) return { action: "recusar", error: `O vídeo pode ter no máximo ${MAX_VIDEO_SECONDS} segundos.` };
+  if (support.canCompress) return { action: "comprimir" };
+  if (sizeBytes <= VIDEO_FALLBACK_MB * 1e6) return { action: "enviar" };
+  return { action: "recusar", error: "Esse vídeo é grande demais para este aparelho. Grave um vídeo mais curto." };
+}
+
 export function postTypeFor(media: Pick<MediaItem, "kind">[]): PostType {
   if (media.length > 1) return "carrossel";
   return media[0]?.kind === "video" ? "video" : "imagem";
