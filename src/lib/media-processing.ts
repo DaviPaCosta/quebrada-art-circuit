@@ -17,7 +17,16 @@ export function probeVideo(url: string): Promise<{ width: number; height: number
     const v = document.createElement("video");
     v.preload = "metadata";
     v.muted = true;
-    v.onloadedmetadata = () => resolve({ width: v.videoWidth, height: v.videoHeight, duration: v.duration });
+    v.onloadedmetadata = () => {
+      if (Number.isFinite(v.duration)) return resolve({ width: v.videoWidth, height: v.videoHeight, duration: v.duration });
+      // Vídeos gravados no navegador (WebM) às vezes chegam sem duração: pular para o fim força o cálculo.
+      v.ondurationchange = () => {
+        if (!Number.isFinite(v.duration)) return;
+        v.ondurationchange = null;
+        resolve({ width: v.videoWidth, height: v.videoHeight, duration: v.duration });
+      };
+      v.currentTime = Number.MAX_SAFE_INTEGER;
+    };
     v.onerror = () => reject(new Error("Não foi possível ler esse vídeo. Prefira MP4 (H.264)."));
     v.src = url;
   });

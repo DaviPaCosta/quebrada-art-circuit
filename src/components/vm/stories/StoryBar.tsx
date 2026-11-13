@@ -1,10 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, Plus } from "lucide-react";
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { UserAvatar } from "@/components/vm/UserAvatar";
 import { storyGroups, type StoryGroup } from "@/lib/logic";
 import { useAppState, useCurrentUser } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { CameraCapture } from "../camera/CameraCapture";
 import { StoryComposer } from "./StoryComposer";
 
 const StoryViewer = lazy(() => import("./StoryViewer").then((m) => ({ default: m.StoryViewer })));
@@ -22,7 +23,7 @@ export function StoryBar() {
   );
   const [open, setOpen] = useState<{ groups: StoryGroup[]; index: number } | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const input = useRef<HTMLInputElement>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   if (!me) return null;
   const mineIndex = groups.findIndex((g) => g.user.id === me.id);
@@ -34,7 +35,7 @@ export function StoryBar() {
         <div className="relative w-16 shrink-0">
           <button
             type="button"
-            onClick={() => (mineIndex >= 0 ? setOpen({ groups, index: mineIndex }) : input.current?.click())}
+            onClick={() => (mineIndex >= 0 ? setOpen({ groups, index: mineIndex }) : setCameraOpen(true))}
             className="flex w-16 flex-col items-center gap-1"
             aria-label={mineIndex >= 0 ? "Ver seu story" : "Criar story"}
           >
@@ -45,22 +46,13 @@ export function StoryBar() {
           </button>
           <button
             type="button"
-            onClick={() => input.current?.click()}
+            onClick={() => setCameraOpen(true)}
             aria-label="Adicionar ao seu story"
             className="absolute right-0 top-11 flex size-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
           >
             <Plus className="size-3" strokeWidth={3} />
           </button>
-          <input
-            ref={input}
-            type="file"
-            accept="image/*,video/*"
-            className="hidden"
-            onChange={(e) => {
-              setFile(e.target.files?.[0] ?? null);
-              e.target.value = "";
-            }}
-          />
+
         </div>
 
         <Link to="/reels" className="flex w-16 shrink-0 flex-col items-center gap-1">
@@ -88,6 +80,16 @@ export function StoryBar() {
         ))}
       </div>
 
+      {cameraOpen && (
+        <CameraCapture
+          multiple={false}
+          onFiles={(files) => {
+            setCameraOpen(false);
+            setFile(files[0] ?? null);
+          }}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
       <StoryComposer file={file} onClose={() => setFile(null)} />
       {open && (
         <Suspense fallback={null}>

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CameraCapture } from "@/components/vm/camera/CameraCapture";
 import { MentionInput } from "@/components/vm/Mentions";
 import { PageTitle } from "@/components/vm/AppShell";
 import { FieldError } from "@/components/vm/AuthLayout";
@@ -60,6 +61,8 @@ function Publish() {
   const [error, setError] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
+  // Publicar abre direto na câmera (galeria fica ao lado, dentro dela).
+  const [cameraOpen, setCameraOpen] = useState(true);
 
   // Libera a memória das prévias ao sair da tela.
   const draftsRef = useRef(drafts);
@@ -223,10 +226,27 @@ function Publish() {
       </ol>
 
       <div className="space-y-5 px-4 sm:px-0">
+        {cameraOpen && remaining > 0 && (
+          <CameraCapture
+            onFiles={(files) => {
+              setCameraOpen(false);
+              void addFiles(files);
+            }}
+            onClose={() => {
+              setCameraOpen(false);
+              if (!drafts.length) navigate({ to: "/feed" });
+            }}
+          />
+        )}
         {step === "selecionar" && <MediaPicker onFiles={addFiles} remaining={remaining} loading={loadingFiles} />}
 
         {step === "editar" && (
           <>
+            {remaining > 0 && (
+              <Button type="button" variant="sand" className="w-full" onClick={() => setCameraOpen(true)}>
+                <Camera /> Adicionar pela câmera
+              </Button>
+            )}
             <UploadPreview
               drafts={drafts}
               selectedId={selectedId}
