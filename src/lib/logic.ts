@@ -15,6 +15,54 @@ export function isValidUsername(u: string) {
 
 export type Result = { ok: true; state: AppState } | { ok: false; error: string };
 
+/* ---------- Contas: idade e papel ---------- */
+
+export type AccountRole = "aluno" | "professor";
+export const MIN_AGE = 13;
+
+/** Idade em anos completos. `birthDate` é "AAAA-MM-DD"; usa só o calendário, sem fuso. */
+export function ageOn(birthDate: string, today: Date): number {
+  const [y, m, d] = birthDate.split("-").map(Number) as [number, number, number];
+  const month = today.getMonth() + 1;
+  const hadBirthday = month > m || (month === m && today.getDate() >= d);
+  return today.getFullYear() - y - (hadBirthday ? 0 : 1);
+}
+
+export function needsRoleChoice(age: number): boolean {
+  return age >= 20 && age <= 30;
+}
+
+export function roleForAge(age: number, choice?: AccountRole): AccountRole {
+  if (age < 20) return "aluno";
+  if (age > 30) return "professor";
+  return choice ?? "aluno";
+}
+
+export interface SignUpInput {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  birthDate: string;
+  roleChoice?: AccountRole | undefined;
+  acceptedRules: boolean;
+}
+
+/** Primeira mensagem de erro do cadastro, ou null se estiver tudo certo. */
+export function validateSignUp(input: SignUpInput, today: Date): string | null {
+  if (!input.name.trim()) return "Informe seu nome de exibição.";
+  if (!isValidUsername(normalizeUsername(input.username)))
+    return "Usuário deve ter 3 a 20 caracteres: letras, números, ponto ou _.";
+  if (!/^\S+@\S+\.\S+$/.test(input.email.trim())) return "E-mail inválido.";
+  if (input.password.length < 8) return "A senha precisa ter pelo menos 8 caracteres.";
+  if (!input.birthDate) return "Informe sua data de nascimento.";
+  const age = /^\d{4}-\d{2}-\d{2}$/.test(input.birthDate) ? ageOn(input.birthDate, today) : NaN;
+  if (!Number.isFinite(age) || age < 0 || age > 120) return "Data de nascimento inválida.";
+  if (age < MIN_AGE) return "Você precisa ter pelo menos 13 anos para criar uma conta.";
+  if (!input.acceptedRules) return "Você precisa aceitar as regras de convivência.";
+  return null;
+}
+
 export function signUp(
   s: AppState,
   input: { name: string; username: string; email: string; password: string },

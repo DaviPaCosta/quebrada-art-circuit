@@ -185,3 +185,32 @@ describe("regras da rede", () => {
     });
   });
 });
+
+describe("idade e papel", () => {
+  const hoje = new Date(2026, 10, 12); // 12/11/2026 local
+  it("conta a idade pelo calendário, sem fuso", () => {
+    expect(L.ageOn("2013-11-12", hoje)).toBe(13);
+    expect(L.ageOn("2013-11-13", hoje)).toBe(12);
+    expect(L.ageOn("2006-11-12", hoje)).toBe(20);
+  });
+  it("define o papel nos limites", () => {
+    expect(L.roleForAge(19)).toBe("aluno");
+    expect(L.roleForAge(20, "professor")).toBe("professor");
+    expect(L.roleForAge(30)).toBe("aluno");
+    expect(L.roleForAge(30, "professor")).toBe("professor");
+    expect(L.roleForAge(31, "aluno")).toBe("professor");
+    expect(L.roleForAge(19, "professor")).toBe("aluno");
+  });
+  it("só pede escolha entre 20 e 30", () => {
+    expect([19, 20, 30, 31].map(L.needsRoleChoice)).toEqual([false, true, true, false]);
+  });
+  it("valida o cadastro", () => {
+    const ok = { name: "Ana", username: "ana.rima", email: "a@b.co", password: "12345678", birthDate: "2010-01-01", acceptedRules: true };
+    expect(L.validateSignUp(ok, hoje)).toBeNull();
+    expect(L.validateSignUp({ ...ok, birthDate: "2014-01-01" }, hoje)).toBe("Você precisa ter pelo menos 13 anos para criar uma conta.");
+    expect(L.validateSignUp({ ...ok, password: "1234567" }, hoje)).toBe("A senha precisa ter pelo menos 8 caracteres.");
+    expect(L.validateSignUp({ ...ok, acceptedRules: false }, hoje)).toBe("Você precisa aceitar as regras de convivência.");
+    expect(L.validateSignUp({ ...ok, birthDate: "" }, hoje)).toBe("Informe sua data de nascimento.");
+    expect(L.validateSignUp({ ...ok, birthDate: "2999-01-01" }, hoje)).toBe("Data de nascimento inválida.");
+  });
+});
