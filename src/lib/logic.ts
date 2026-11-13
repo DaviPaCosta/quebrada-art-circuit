@@ -313,43 +313,19 @@ export function storedMediaRefs(posts: Post[]) {
 }
 
 /** Atualiza dados salvos em versões antigas do app, uma versão de cada vez. */
-export function migrateState(raw: unknown, seed: AppState): AppState | null {
+/**
+ * Lê o que estava salvo no navegador. Desde a versão 6 os dados sociais vêm do Supabase,
+ * então versões antigas viram estado limpo e só as preferências da pessoa são mantidas.
+ */
+export function migrateState(raw: unknown, empty: AppState): AppState | null {
   if (!raw || typeof raw !== "object") return null;
-  let r = raw as { version?: number; posts?: unknown[] } & Partial<AppState>;
-  if (r.version === 1) {
-    // v1 → v2: uma imagem por publicação → lista de mídias.
-    if (!Array.isArray(r.posts)) return null;
-    type OldPost = Omit<Post, "type" | "media"> & { image: string; alt: string };
-    const posts: Post[] = (r.posts as OldPost[]).map(({ image, alt, ...rest }) => {
-      const fromSeed = seed.posts.find((p) => p.id === rest.id && p.media[0]?.src === image);
-      const media: MediaItem[] = fromSeed
-        ? fromSeed.media
-        : [{ id: `m-${rest.id}`, kind: "image", src: image, alt, width: 1024, height: 1280 }];
-      return { ...rest, media, type: "imagem" };
-    });
-    const ids = new Set(posts.map((p) => p.id));
-    const newSeedPosts = seed.posts.filter((p) => !ids.has(p.id));
-    r = { ...r, version: 2, posts: [...posts, ...newSeedPosts] };
-  }
-  if (r.version === 2) {
-    // v2 → v3: chegam os stories.
-    r = { ...r, version: 3, stories: seed.stories };
-  }
-  if (r.version === 3) {
-    r = { ...r, version: 4, comments: (r.comments ?? seed.comments).map((c) => ({ ...c, likes: c.likes ?? [] })) };
-  }
-  if (r.version === 4) {
-    // v4 → v5: contas reais no Supabase. Some a senha local; papel vira aluno/professor + moderador.
-    type OldUser = Omit<User, "role" | "isModerator"> & { password?: string; role: string; isModerator?: boolean };
-    const users = ((r.users ?? []) as OldUser[]).map(({ password: _pw, role, isModerator, ...u }) => ({
-      ...u,
-      role: (role === "moderador" || role === "professor" ? "professor" : "aluno") as AccountRole,
-      isModerator: isModerator === true || role === "moderador",
-    }));
-    r = { ...r, version: 5, users };
-  }
-  if (r.version !== seed.version) return null;
-  return refreshSeedStories({ ...seed, ...(r as AppState) }, seed);
+  const r = raw as Partial<AppState> & { version?: number };
+  const keep = {
+    settings: { ...empty.settings, ...(r.settings ?? {}) },
+    eventInterest: r.eventInterest ?? {},
+  };
+  if (r.version !== empty.version) return { ...empty, ...keep };
+  return { ...empty, ...(r as AppState), ...keep };
 }
 
 /* ---------- Stories ---------- */
@@ -361,16 +337,6 @@ const STORY_MS = STORY_HOURS * 60 * 60 * 1000;
 export function isStoryActive(story: Story, nowMs = Date.now()) {
   const age = nowMs - new Date(story.createdAt).getTime();
   return age >= 0 && age < STORY_MS;
-}
-
-/** Stories de exemplo renascem a cada visita para a demonstração nunca ficar vazia. */
-export function refreshSeedStories(s: AppState, seed: AppState): AppState {
-  const fresh = new Map(seed.stories.map((st) => [st.id, st.createdAt]));
-  if (!s.stories.some((st) => fresh.has(st.id))) return s;
-  return {
-    ...s,
-    stories: s.stories.map((st) => (fresh.has(st.id) ? { ...st, createdAt: fresh.get(st.id) ?? st.createdAt } : st)),
-  };
 }
 
 export function createStory(

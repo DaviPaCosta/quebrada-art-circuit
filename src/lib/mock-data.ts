@@ -443,9 +443,29 @@ function seedStories(): Story[] {
   ];
 }
 
+/** Estado inicial do app: os dados sociais vêm do Supabase depois do login. */
+export function createEmptyState(): AppState {
+  return {
+    version: 6,
+    sessionUserId: null,
+    users: [],
+    posts: [],
+    stories: [],
+    comments: [],
+    notifications: [],
+    reports: [],
+    follows: {},
+    blocks: {},
+    saved: {},
+    eventInterest: {},
+    settings: { fontSize: 16, highContrast: false, reduceMotion: false },
+  };
+}
+
+/** Dados de exemplo usados só nos testes das regras. */
 export function createSeedState(): AppState {
   return {
-    version: 5,
+    version: 6,
     stories: seedStories(),
     sessionUserId: null,
     users: structuredClone(users),

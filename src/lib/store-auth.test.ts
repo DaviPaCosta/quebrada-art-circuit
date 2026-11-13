@@ -53,6 +53,18 @@ const row = (id: string): ProfileRow => ({
 const fetchOwnProfile = vi.fn<(id: string) => Promise<ProfileRow | null>>();
 vi.mock("./auth", async (orig) => ({ ...(await orig<typeof import("./auth")>()), fetchOwnProfile: (id: string) => fetchOwnProfile(id) }));
 
+const social = vi.hoisted(() => ({
+  snapshot: null as null | Record<string, unknown>,
+  failLike: false,
+}));
+vi.mock("./api/social", () => ({
+  fetchSnapshot: async () =>
+    social.snapshot ?? { users: [], posts: [], comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [] },
+  setLike: async () => {
+    if (social.failLike) throw new Error("Sem conexão com a internet. Tente de novo.");
+  },
+}));
+
 const flush = () => new Promise((r) => setTimeout(r, 5));
 
 async function freshStore() {
@@ -69,6 +81,8 @@ describe("sessão do Supabase no app", () => {
     fake.globalSignOutError = null;
     fake.localSignOuts = 0;
     fetchOwnProfile.mockReset();
+    social.snapshot = null;
+    social.failLike = false;
   });
   afterEach(() => vi.useRealTimers());
 
@@ -114,5 +128,39 @@ describe("sessão do Supabase no app", () => {
     await store.actions.signOut();
     expect(fake.localSignOuts).toBe(1);
     expect(store.getAuthSnapshot()).toEqual({ status: "pronto", userId: null });
+  });
+
+  it("ao entrar, baixa os posts do banco", async () => {
+    fake.session = { user: { id: "a", email: "a@b.co" } };
+    fetchOwnProfile.mockResolvedValue(row("a"));
+    social.snapshot = {
+      users: [{ ...row("b"), id: "b" }].map((r) => ({ id: r.id, username: "b", name: "B", color: "spray", bio: "", bairro: "", showBairro: false, styles: [], role: "aluno", isModerator: false, createdAt: r.created_at })),
+      posts: [{ id: "p1", authorId: "b", type: "imagem", media: [], title: "T", description: "", category: "Grafite", credits: "", tags: [], likes: [], createdAt: "2026-11-13T00:00:00Z" }],
+      comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [],
+    };
+    const store = await freshStore();
+    store.hydrateStore();
+    await flush();
+    const s = store.getState();
+    expect(s.posts.map((p) => p.id)).toEqual(["p1"]);
+    expect(s.users.map((u) => u.id).sort()).toEqual(["a", "b"]);
+    expect(s.users.find((u) => u.id === "a")?.email).toBe("a@b.co");
+  });
+
+  it("curtida que falha no banco é desfeita", async () => {
+    fake.session = { user: { id: "a", email: "a@b.co" } };
+    fetchOwnProfile.mockResolvedValue(row("a"));
+    social.snapshot = {
+      users: [], comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [],
+      posts: [{ id: "p1", authorId: "b", type: "imagem", media: [], title: "T", description: "", category: "Grafite", credits: "", tags: [], likes: [], createdAt: "2026-11-13T00:00:00Z" }],
+    };
+    const store = await freshStore();
+    store.hydrateStore();
+    await flush();
+    social.failLike = true;
+    const pending = store.actions.toggleLike("p1");
+    expect(store.getState().posts[0]!.likes).toEqual(["a"]);
+    await pending;
+    expect(store.getState().posts[0]!.likes).toEqual([]);
   });
 });

@@ -1,31 +1,36 @@
 import { useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { createSeedState } from "./mock-data";
+import { createEmptyState } from "./mock-data";
 import * as L from "./logic";
 import * as Auth from "./auth";
-import { deleteMedia } from "./media-db";
+import * as Api from "./api/social";
+import type { SocialSlice } from "./api/mappers";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type { AppState, MediaItem, ReportTarget, Settings, User } from "./types";
 
 const STORAGE_KEY = "vozes-do-muro:v1";
+const REFRESH_MIN_MS = 60_000;
 
-let state: AppState = createSeedState();
+let state: AppState = createEmptyState();
 let hydrated = false;
 export type AuthStatus = "carregando" | "pronto" | "erro";
 let authStatus: AuthStatus = "carregando";
 let authListening = false;
+let lastRefresh = 0;
 const listeners = new Set<() => void>();
 
 function emit() {
   listeners.forEach((l) => l());
 }
 
+/** Só as preferências ficam no aparelho; o resto é cópia do banco. */
 function persist() {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const { settings, eventInterest, version } = state;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...createEmptyState(), version, settings, eventInterest }));
   } catch {
-    toast.error("Armazenamento do aparelho cheio. Tente uma imagem menor ou exclua publicações.");
+    /* sem espaço: as preferências voltam ao padrão na próxima visita */
   }
 }
 
@@ -36,28 +41,26 @@ function set(next: AppState) {
   emit();
 }
 
-/** Carrega os dados salvos no aparelho (chamado uma vez após a página abrir). */
+/** Estado atual (fora do React). */
+export function getState(): AppState {
+  return state;
+}
+
+/** Carrega as preferências salvas no aparelho (chamado uma vez após a página abrir). */
 export function hydrateStore() {
   if (hydrated || typeof window === "undefined") return;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const migrated = L.migrateState(JSON.parse(raw), createSeedState());
+      const migrated = L.migrateState(JSON.parse(raw), createEmptyState());
       if (migrated) state = migrated;
-    }
-    // Apaga do aparelho os stories que já venceram.
-    const expired = L.expiredStories(state);
-    if (expired.length) {
-      void deleteMedia(L.storyMediaRefs(expired));
-      const ids = new Set(expired.map((st) => st.id));
-      state = { ...state, stories: state.stories.filter((st) => !ids.has(st.id)) };
     }
   } catch {
     /* dados corrompidos: começa do zero */
   }
-  // A sessão agora vem do Supabase; até ele responder, ninguém está logado.
   state = { ...state, sessionUserId: null };
   hydrated = true;
+  persist();
   emit();
   startAuth();
 }
@@ -68,22 +71,15 @@ function setAuthStatus(next: AuthStatus) {
   emit();
 }
 
-/** Coloca o perfil vindo do banco no estado local, mantendo foto/capa/destaque guardados no aparelho. */
-function applyOwnProfile(user: User) {
-  const local = state.users.find((u) => u.id === user.id);
-  const merged: User = {
-    ...user,
-    avatar: user.avatar ?? local?.avatar,
-    cover: user.cover ?? local?.cover,
-    pinnedPostId: local?.pinnedPostId,
-  };
-  const users = local ? state.users.map((u) => (u.id === user.id ? merged : u)) : [...state.users, merged];
-  set({ ...state, users, sessionUserId: user.id });
+/** Junta o retrato do banco com o próprio perfil (que traz o e-mail). */
+function applySnapshot(slice: SocialSlice, own: User) {
+  const users = [own, ...slice.users.filter((u) => u.id !== own.id)];
+  set({ ...state, ...slice, users, sessionUserId: own.id });
 }
 
 let loadSeq = 0;
 
-/** Busca sessão e perfil. Só o carregamento mais recente vale; falha passageira não derruba quem já entrou. */
+/** Busca sessão, perfil e dados sociais. Só o carregamento mais recente vale. */
 async function loadSession() {
   const seq = ++loadSeq;
   const stale = () => seq !== loadSeq;
@@ -92,15 +88,26 @@ async function loadSession() {
     if (stale()) return;
     const session = data.session;
     if (!session) {
-      if (state.sessionUserId) set({ ...state, sessionUserId: null });
+      if (state.sessionUserId) set({ ...createEmptyState(), settings: state.settings, eventInterest: state.eventInterest });
       setAuthStatus("pronto");
       return;
     }
     const row = await Auth.fetchOwnProfile(session.user.id);
     if (stale()) return;
-    const user = Auth.profileToUser(row, session.user.email ?? "");
-    if (!user) return setAuthStatus("erro");
-    applyOwnProfile(user);
+    const own = Auth.profileToUser(row, session.user.email ?? "");
+    if (!own) return setAuthStatus("erro");
+    try {
+      const slice = await Api.fetchSnapshot(own.id);
+      if (stale()) return;
+      applySnapshot(slice, own);
+      lastRefresh = Date.now();
+    } catch (e) {
+      if (stale()) return;
+      // Entra mesmo assim; os dados aparecem na próxima tentativa.
+      const users = [own, ...state.users.filter((u) => u.id !== own.id)];
+      set({ ...state, users, sessionUserId: own.id });
+      toast.error(e instanceof Error ? e.message : "Não conseguimos carregar o feed.");
+    }
     setAuthStatus("pronto");
   } catch {
     if (stale()) return;
@@ -119,9 +126,16 @@ function startAuth() {
       window.location.assign("/nova-senha");
       return;
     }
+    if (event === "TOKEN_REFRESHED") return; // nada mudou para o app
     if (event === "SIGNED_IN" && !state.sessionUserId) setAuthStatus("carregando");
     // Não chamar o Supabase dentro do próprio aviso (pode travar): agenda para logo depois.
     window.setTimeout(() => void loadSession(), 0);
+  });
+  // Ao voltar para a aba, atualiza (no máximo 1x por minuto).
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.sessionUserId && Date.now() - lastRefresh > REFRESH_MIN_MS) {
+      void loadSession();
+    }
   });
   void loadSession();
 }
@@ -143,7 +157,6 @@ function subscribe(l: () => void) {
   listeners.add(l);
   return () => listeners.delete(l);
 }
-
 
 function shallowEqual(a: unknown, b: unknown) {
   if (Object.is(a, b)) return true;
@@ -187,16 +200,46 @@ function me() {
   return state.sessionUserId;
 }
 
+/**
+ * Aplica a mudança na tela na hora e grava no banco por trás.
+ * Se o banco recusar, volta ao estado anterior e avisa.
+ */
+export async function optimistic(apply: (s: AppState) => AppState, remote: () => Promise<unknown>): Promise<boolean> {
+  const before = state;
+  const applied = apply(state);
+  set(applied);
+  try {
+    await remote();
+    return true;
+  } catch (e) {
+    // Desfaz se nada mais mudou no meio do caminho; senão, recarrega do banco para não perder outras mudanças.
+    if (state === applied) set(before);
+    else void loadSession();
+    toast.error(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
+    return false;
+  }
+}
+
+/** @ citados num texto, já resolvidos para contas que existem. */
+function mentions(text: string) {
+  const id = me();
+  return id ? L.mentionedUsers(state, id, text).map((u) => u.username) : [];
+}
+
 export const actions = {
   async signOut() {
     loadSeq++; // descarta carregamentos que ainda estejam a caminho
     if (isSupabaseConfigured()) await Auth.signOut();
-    set({ ...state, sessionUserId: null });
+    set({ ...createEmptyState(), settings: state.settings, eventInterest: state.eventInterest });
     setAuthStatus("pronto");
   },
   retryAuth() {
     setAuthStatus("carregando");
     void loadSession();
+  },
+  /** Recarrega tudo do banco (ex.: depois de publicar). */
+  async refresh() {
+    await loadSession();
   },
   async updateProfile(patch: L.ProfilePatch) {
     const id = me();
@@ -205,6 +248,17 @@ export const actions = {
     if (!local.ok) return local;
     const remote = await Auth.saveOwnProfile(id, patch);
     if (!remote.ok) return remote;
+    try {
+      if (patch.avatar !== undefined || patch.cover !== undefined) {
+        await Api.setProfileImages({
+          ...(patch.avatar !== undefined ? { avatar_url: patch.avatar || null } : {}),
+          ...(patch.cover !== undefined ? { cover_url: patch.cover || null } : {}),
+        });
+      }
+      if (patch.pinnedPostId !== undefined) await Api.setPinnedPost(patch.pinnedPostId || null);
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Não conseguimos salvar." };
+    }
     // Reaplica sobre o estado atual (pode ter mudado enquanto o banco respondia).
     const next = L.updateProfile(state, id, patch);
     if (next.ok) set(next.state);
@@ -218,96 +272,135 @@ export const actions = {
       if (!r.ok) return r;
       await Auth.signOut();
     }
-    void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.authorId === id)));
-    void deleteMedia(L.storyMediaRefs(state.stories.filter((st) => st.authorId === id)));
-    set(L.deleteAccount(state, id));
+    set({ ...createEmptyState(), settings: state.settings, eventInterest: state.eventInterest });
     return { ok: true as const };
   },
-  createPost(data: L.NewPostData) {
+  /** Cria o post no banco (mídias já enviadas) e coloca no topo do feed. */
+  async createPost(data: L.NewPostData): Promise<string | null> {
     const id = me();
     if (!id) return null;
-    const r = L.createPost(state, id, data);
-    set(r.state);
-    simulateReaction(r.id, id);
-    return r.id;
+    try {
+      const postId = await Api.insertPost({ ...data, type: L.postTypeFor(data.media) });
+      const local = L.createPost(state, id, data);
+      set({ ...local.state, posts: local.state.posts.map((p) => (p.id === local.id ? { ...p, id: postId } : p)) });
+      void Api.notifyMentions(postId, null, mentions(`${data.description} ${data.credits}`));
+      return postId;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não conseguimos publicar.");
+      return null;
+    }
   },
-  deletePost(postId: string) {
+  async deletePost(postId: string) {
     const id = me();
-    void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.id === postId && p.authorId === id)));
-    set({
-      ...state,
-      posts: state.posts.filter((p) => !(p.id === postId && p.authorId === id)),
-      comments: state.comments.filter((c) => c.postId !== postId),
-    });
+    await optimistic(
+      (s) => ({
+        ...s,
+        posts: s.posts.filter((p) => !(p.id === postId && p.authorId === id)),
+        comments: s.comments.filter((c) => c.postId !== postId),
+      }),
+      () => Api.deletePost(postId),
+    );
   },
-  createStory(media: MediaItem, caption: string) {
+  async createStory(media: MediaItem, caption: string): Promise<string | null> {
     const id = me();
     if (!id) return null;
-    const r = L.createStory(state, id, media, caption);
-    set(r.state);
-    return r.id;
+    try {
+      const storyId = await Api.insertStory(media, caption);
+      const local = L.createStory(state, id, media, caption);
+      set({ ...local.state, stories: local.state.stories.map((st) => (st.id === local.id ? { ...st, id: storyId } : st)) });
+      return storyId;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não conseguimos publicar o story.");
+      return null;
+    }
   },
-  markStoryViewed(storyId: string) {
+  async markStoryViewed(storyId: string) {
     const id = me();
-    if (id) set(L.markStoryViewed(state, id, storyId));
+    const story = state.stories.find((st) => st.id === storyId);
+    if (!id || !story || story.viewers.includes(id) || story.authorId === id) return;
+    set(L.markStoryViewed(state, id, storyId));
+    await Api.markStoryViewed(storyId).catch(() => {});
   },
-  reactToStory(storyId: string) {
+  async reactToStory(storyId: string) {
     const id = me();
-    if (id) set(L.reactToStory(state, id, storyId));
+    if (id) await optimistic((s) => L.reactToStory(s, id, storyId), () => Api.reactToStory(storyId));
   },
-  deleteStory(storyId: string) {
+  async deleteStory(storyId: string) {
+    const id = me();
+    if (id) await optimistic((s) => L.deleteStory(s, id, storyId), () => Api.deleteStory(storyId));
+  },
+  async toggleLike(postId: string) {
     const id = me();
     if (!id) return;
-    void deleteMedia(L.storyMediaRefs(state.stories.filter((st) => st.id === storyId && st.authorId === id)));
-    set(L.deleteStory(state, id, storyId));
+    const on = !state.posts.find((p) => p.id === postId)?.likes.includes(id);
+    await optimistic((s) => L.toggleLike(s, id, postId), () => Api.setLike(postId, on));
   },
-  toggleLike(postId: string) {
+  async addComment(postId: string, text: string, parentId?: string) {
     const id = me();
-    if (id) set(L.toggleLike(state, id, postId));
+    if (!id) return;
+    try {
+      const commentId = await Api.addComment(postId, text.trim(), parentId);
+      const next = L.addComment(state, id, postId, text, parentId);
+      const tempId = next.comments.at(-1)?.id;
+      set({ ...next, comments: next.comments.map((c) => (c.id === tempId ? { ...c, id: commentId } : c)) });
+      void Api.notifyMentions(postId, commentId, mentions(text));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não conseguimos enviar o comentário.");
+    }
   },
-  addComment(postId: string, text: string, parentId?: string) {
+  async toggleCommentLike(commentId: string) {
     const id = me();
-    if (id) set(L.addComment(state, id, postId, text, parentId));
+    if (!id) return;
+    const on = !state.comments.find((c) => c.id === commentId)?.likes.includes(id);
+    await optimistic((s) => L.toggleCommentLike(s, id, commentId), () => Api.setCommentLike(commentId, on));
   },
-  toggleCommentLike(commentId: string) {
-    const id = me();
-    if (id) set(L.toggleCommentLike(state, id, commentId));
-  },
-  deleteComment(commentId: string) {
+  async deleteComment(commentId: string) {
     const id = me();
     const c = state.comments.find((x) => x.id === commentId);
     const post = c && state.posts.find((p) => p.id === c.postId);
-    if (!c || (c.authorId !== id && post?.authorId !== id)) return;
-    set({ ...state, comments: state.comments.filter((x) => x.id !== commentId && x.parentId !== commentId) });
+    const mine = c && (c.authorId === id || post?.authorId === id || state.users.find((u) => u.id === id)?.isModerator);
+    if (!c || !mine) return;
+    await optimistic(
+      (s) => ({ ...s, comments: s.comments.filter((x) => x.id !== commentId && x.parentId !== commentId) }),
+      () => Api.deleteComment(commentId),
+    );
   },
-  toggleSave(postId: string) {
+  async toggleSave(postId: string) {
     const id = me();
-    if (id) set(L.toggleSave(state, id, postId));
+    if (!id) return;
+    const on = !(state.saved[id] ?? []).includes(postId);
+    await optimistic((s) => L.toggleSave(s, id, postId), () => Api.setSave(postId, on));
   },
-  toggleFollow(targetId: string) {
+  async toggleFollow(targetId: string) {
     const id = me();
-    if (id) set(L.toggleFollow(state, id, targetId));
+    if (!id) return;
+    const on = !(state.follows[id] ?? []).includes(targetId);
+    await optimistic((s) => L.toggleFollow(s, id, targetId), () => Api.setFollow(targetId, on));
   },
-  toggleBlock(targetId: string) {
+  async toggleBlock(targetId: string) {
     const id = me();
-    if (id) set(L.toggleBlock(state, id, targetId));
+    if (!id) return;
+    const on = !(state.blocks[id] ?? []).includes(targetId);
+    await optimistic((s) => L.toggleBlock(s, id, targetId), () => Api.setBlock(targetId, on));
   },
-  report(input: { targetType: ReportTarget; targetId: string; reason: string; details: string }) {
+  async report(input: { targetType: ReportTarget; targetId: string; reason: string; details: string }) {
     const id = me();
-    if (id) set(L.report(state, id, input));
+    if (id) await optimistic((s) => L.report(s, id, input), () => Api.insertReport(input));
   },
-  resolveReport(reportId: string, action: "remover" | "arquivar") {
+  async resolveReport(reportId: string, action: "remover" | "arquivar") {
     const id = me();
-    if (id) set(L.resolveReport(state, id, reportId, action));
+    const report = state.reports.find((r) => r.id === reportId);
+    if (!id || !report) return;
+    await optimistic((s) => L.resolveReport(s, id, reportId, action), () => Api.resolveReport(report, action));
   },
-  markNotificationsRead() {
+  async markNotificationsRead() {
     const id = me();
     if (!id) return;
     if (!state.notifications.some((n) => n.userId === id && !n.read)) return;
-    set({
-      ...state,
-      notifications: state.notifications.map((n) => (n.userId === id ? { ...n, read: true } : n)),
-    });
+    await optimistic(
+      (s) => ({ ...s, notifications: s.notifications.map((n) => (n.userId === id ? { ...n, read: true } : n)) }),
+      () => Api.markNotificationsRead(),
+    );
   },
   toggleEventInterest(eventId: string) {
     const id = me();
@@ -325,25 +418,3 @@ export const actions = {
     set({ ...state, settings: { ...state.settings, ...patch } });
   },
 };
-
-const REACTIONS = [
-  "Que trampo bonito! 🔥",
-  "Isso merece estar num muro gigante.",
-  "Respeito demais pela autoria e pelo cuidado.",
-  "Salvei pra mostrar pra turma!",
-  "Arte que fala da gente. 🧡",
-];
-
-/** Protótipo: simula a comunidade reagindo à sua nova publicação. */
-function simulateReaction(postId: string, authorId: string) {
-  if (typeof window === "undefined") return;
-  window.setTimeout(() => {
-    const others = state.users.filter((u) => u.id !== authorId && !L.isBlockedBetween(state, u.id, authorId));
-    if (!others.length || !state.posts.some((p) => p.id === postId)) return;
-    const fan = others[Math.floor(Math.random() * others.length)]!;
-    let next = L.toggleLike(state, fan.id, postId);
-    next = L.addComment(next, fan.id, postId, REACTIONS[Math.floor(Math.random() * REACTIONS.length)]!);
-    set(next);
-    toast(`@${fan.username} curtiu e comentou sua publicação`);
-  }, 4000);
-}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSeedState } from "./mock-data";
+import { createEmptyState, createSeedState } from "./mock-data";
 import * as L from "./logic";
 
 describe("regras da rede", () => {
@@ -47,12 +47,6 @@ describe("regras da rede", () => {
     expect(r.ok && r.state.users.find((u) => u.id === "u1")).toMatchObject({ color: "lime", cover: "data:photo", pinnedPostId: "p1" });
   });
 
-  it("migração mantém comentários anteriores com curtidas vazias", () => {
-    const seed = createSeedState();
-    const migrated = L.migrateState({ ...seed, version: 3, comments: seed.comments.map(({ likes: _likes, ...c }) => c) }, seed);
-    expect(migrated?.comments.find((c) => c.id === "c1")?.likes).toEqual([]);
-    expect(migrated?.users).toEqual(seed.users);
-  });
   it("curtir de novo desfaz a curtida", () => {
     let s = createSeedState();
     s = L.toggleLike(s, "u5", "p1");
@@ -112,19 +106,6 @@ describe("regras da rede", () => {
     expect(L.cropRect(1000, 1000, "4:5", 1)).toEqual({ x: 200, y: 0, width: 800, height: 1000 });
   });
 
-  it("dados salvos na versão antiga continuam funcionando", () => {
-    const old = {
-      version: 1,
-      sessionUserId: "u1",
-      posts: [{ id: "px", authorId: "u1", image: "data:abc", alt: "desc", title: "t", description: "", category: "Grafite", credits: "c", tags: [], likes: [], createdAt: "2026-01-01" }],
-    };
-    const s = L.migrateState(old, createSeedState())!;
-    expect(s.version).toBe(5);
-    const p = s.posts.find((x) => x.id === "px")!;
-    expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
-    expect(s.posts.some((x) => x.type === "video")).toBe(true);
-  });
-
   describe("stories", () => {
     const img = { id: "m", kind: "image" as const, src: "data:x", width: 10, height: 10, alt: "x" };
 
@@ -161,13 +142,6 @@ describe("regras da rede", () => {
       expect(L.deleteStory(s, "u1", "s-seed-1").stories.length).toBe(s.stories.length - 1);
     });
 
-    it("dados da versão 2 ganham os stories de exemplo", () => {
-      const seed = createSeedState();
-      const old = { ...seed, version: 2, stories: undefined };
-      const m = L.migrateState(old, seed)!;
-      expect(m.version).toBe(5);
-      expect(m.stories.length).toBe(seed.stories.length);
-    });
   });
 });
 
@@ -200,16 +174,23 @@ describe("idade e papel", () => {
   });
 });
 
-describe("migração v5", () => {
-  it("v4 → v5 remove senhas e converte papéis", () => {
+describe("migração v6", () => {
+  it("dados antigos do navegador viram estado limpo, mantendo configurações", () => {
     const seed = createSeedState();
-    const old = { ...seed, version: 4, users: seed.users.map((u, i) => ({ ...u, password: "x", role: i === 0 ? "moderador" : "usuario" })) };
-    const s = L.migrateState(old, seed)!;
-    expect(s.version).toBe(5);
-    expect(s.users.every((u) => !("password" in u))).toBe(true);
-    expect(s.users[0]).toMatchObject({ role: "professor", isModerator: true });
-    expect(s.users[1]).toMatchObject({ role: "aluno", isModerator: false });
-    expect(s.posts).toHaveLength(seed.posts.length);
+    const settings = { fontSize: 20, highContrast: true, reduceMotion: false };
+    for (const version of [1, 2, 3, 4, 5]) {
+      const old = { ...seed, version, settings, eventInterest: { u1: ["e1"] } };
+      const s = L.migrateState(old, createEmptyState())!;
+      expect(s.version).toBe(6);
+      expect(s).toMatchObject({ posts: [], users: [], stories: [], comments: [], notifications: [], reports: [], follows: {}, saved: {}, blocks: {} });
+      expect(s.settings).toEqual(settings);
+      expect(s.eventInterest).toEqual({ u1: ["e1"] });
+    }
+  });
+  it("dados já na versão 6 continuam", () => {
+    const empty = createEmptyState();
+    const s = L.migrateState({ ...empty, settings: { ...empty.settings, fontSize: 18 } }, createEmptyState())!;
+    expect(s.settings.fontSize).toBe(18);
   });
 });
 
