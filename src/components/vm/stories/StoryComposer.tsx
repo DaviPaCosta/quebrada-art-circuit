@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { MAX_IMAGE_MB } from "@/lib/logic";
-import { extFor, uploadAll } from "@/lib/api/media";
-import { prepareVideo } from "@/lib/prepare-media";
+import { extFor, postMediaPaths, removeUploads, uploadAll } from "@/lib/api/media";
+import { prepareVideo, unlockAudio, videoProblem } from "@/lib/prepare-media";
 import { captureVideoFrame, probeVideo, renderImage } from "@/lib/media-processing";
 import { actions } from "@/lib/store";
 import type { MediaItem } from "@/lib/types";
@@ -29,6 +29,8 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
 
   async function publish() {
     if (!file || !url) return;
+    const audioCtx = isVideo ? unlockAudio() : undefined;
+    let muted = false;
     setBusy(true);
     try {
       let media: MediaItem;
@@ -36,7 +38,12 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
       if (isVideo) {
         const meta = await probeVideo(url);
         const poster = await captureVideoFrame(url, 0.5);
-        const video = await prepareVideo(file, meta.duration, (r) => setProgress(Math.round(r * 100)));
+        const problem = videoProblem(file, meta.duration);
+        if (problem) throw new Error(problem);
+        const video = await prepareVideo(file, meta.duration, (r) => setProgress(Math.round(r * 100)), {
+          audioCtx,
+          onMuted: () => (muted = true),
+        });
         const [src, posterUp] = await uploadAll([
           { blob: video, ext: extFor(video, "mp4") },
           { blob: poster, ext: extFor(poster, "webp") },
@@ -51,13 +58,17 @@ export function StoryComposer({ file, onClose }: { file: File | null; onClose: (
       const storyId = await actions.createStory(media, caption);
       if (storyId) {
         toast.success("Story no ar! Ele some em 24 horas.");
+        if (muted) toast.warning("Neste aparelho o vídeo foi preparado sem som.");
         onClose();
+      } else {
+        void removeUploads(postMediaPaths([media]));
       }
     } catch (e) {
       toast.error((e as Error).message || "Não foi possível publicar o story.");
     } finally {
       setBusy(false);
       setProgress(null);
+      void audioCtx?.close().catch(() => {});
     }
   }
 

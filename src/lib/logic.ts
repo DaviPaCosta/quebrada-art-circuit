@@ -1,4 +1,4 @@
-import type { AppState, Category, MediaItem, Post, PostType, ReportTarget, Story, User } from "./types";
+import type { AppState, Category, Comment, MediaItem, Post, PostType, ReportTarget, Story, User } from "./types";
 
 export const uid = (prefix: string) =>
   `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -98,6 +98,13 @@ export function mentionedUsers(s: AppState, actorId: string, text: string): User
 
 function mentionNotifications(s: AppState, actorId: string, postId: string, text: string) {
   return mentionedUsers(s, actorId, text).map((u) => ({ id: uid("n"), userId: u.id, actorId, postId, type: "mention" as const, text: text.slice(0, 80), createdAt: now(), read: false }));
+}
+
+/** Respostas ficam sempre penduradas no comentário raiz (só um nível de resposta). */
+export function rootCommentId(comments: Pick<Comment, "id" | "parentId">[], parentId: string | undefined): string | undefined {
+  if (!parentId) return undefined;
+  const parent = comments.find((c) => c.id === parentId);
+  return parent?.parentId ?? parentId;
 }
 
 export function addComment(s: AppState, userId: string, postId: string, text: string, parentId?: string): AppState {

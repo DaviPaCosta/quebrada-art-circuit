@@ -83,6 +83,38 @@ set local role authenticated;
 insert into resultado select 'bloqueado não vê os posts de quem bloqueou', count(*) = 0 from public.posts where id = '00000000-0000-0000-0000-00000000f001';
 reset role;
 
+-- ===== moderador bloqueado ainda modera =====
+update public.profiles set is_moderator = true where id = '00000000-0000-0000-0000-00000000000b';
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+update public.posts set removed = true where id = '00000000-0000-0000-0000-00000000f001';
+reset role;
+insert into resultado select 'moderador bloqueado ainda consegue remover', (select removed from public.posts where id = '00000000-0000-0000-0000-00000000f001');
+update public.profiles set is_moderator = false where id = '00000000-0000-0000-0000-00000000000b';
+
+-- ===== datas vêm do servidor =====
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+insert into public.posts (id, author_id, type, title, category, created_at, removed)
+  values ('00000000-0000-0000-0000-00000000f002', '00000000-0000-0000-0000-00000000000b', 'imagem', 'Futuro', 'Rap', '2099-01-01', false);
+insert into public.stories (id, author_id, kind, src, expires_at)
+  values ('00000000-0000-0000-0000-00000000f003', '00000000-0000-0000-0000-00000000000b', 'image', 'x', '2100-01-01');
+reset role;
+insert into resultado select 'post não nasce com data falsa', (select created_at < now() + interval '1 minute' from public.posts where id = '00000000-0000-0000-0000-00000000f002');
+insert into resultado select 'story não fica eterno', (select expires_at < now() + interval '25 hours' from public.stories where id = '00000000-0000-0000-0000-00000000f003');
+
+-- ===== dono apaga o próprio post =====
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+delete from public.posts where id = '00000000-0000-0000-0000-00000000f002';
+reset role;
+insert into resultado select 'dono apaga o próprio post', not exists (select 1 from public.posts where id = '00000000-0000-0000-0000-00000000f002');
+
+-- ===== ninguém consulta quem bloqueou quem pela API =====
+insert into resultado select 'função de bloqueio fora da API pública',
+  not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+              where n.nspname = 'public' and p.proname = 'blocked_between');
+
 -- ===== pasta de arquivos =====
 insert into resultado select 'bucket media existe e é público', exists (select 1 from storage.buckets where id = 'media' and public);
 insert into resultado select 'regras da pasta media criadas',

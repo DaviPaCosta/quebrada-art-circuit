@@ -42,3 +42,17 @@ describe("detalhes da mídia", () => {
     expect(pathFromUrl("seed:grafite")).toBeNull();
   });
 });
+
+import { postMediaPaths } from "./media";
+
+describe("arquivos de um post", () => {
+  it("lista os caminhos no bucket, ignorando exemplos do app", () => {
+    const base = "https://a.supabase.co/storage/v1/object/public/media/";
+    expect(
+      postMediaPaths([
+        { src: `${base}u1/a.mp4`, poster: `${base}u1/a.webp` },
+        { src: "seed:grafite" },
+      ]),
+    ).toEqual(["u1/a.mp4", "u1/a.webp"]);
+  });
+});

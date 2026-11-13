@@ -15,9 +15,9 @@ import { fileToDraft, type Draft } from "@/components/vm/media/drafts";
 import { MediaPicker } from "@/components/vm/media/MediaPicker";
 import { UploadPreview } from "@/components/vm/media/UploadPreview";
 import { MAX_MEDIA, parseTags } from "@/lib/logic";
-import { extFor, uploadAll } from "@/lib/api/media";
+import { extFor, removeUploads, uploadAll } from "@/lib/api/media";
 import { captureVideoFrame, renderImage } from "@/lib/media-processing";
-import { prepareVideo } from "@/lib/prepare-media";
+import { prepareVideo, unlockAudio } from "@/lib/prepare-media";
 import { actions, useCurrentUser } from "@/lib/store";
 import { CATEGORIES, type Category, type MediaItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -140,6 +140,8 @@ function Publish() {
   };
 
   const publish = async () => {
+    const audioCtx = drafts.some((d) => d.kind === "video") ? unlockAudio() : undefined;
+    let muted = false;
     try {
       // 1. Prepara cada item no aparelho (foto otimizada, vídeo comprimido + capa).
       const files: { blob: Blob; ext: string }[] = [];
@@ -154,8 +156,11 @@ function Publish() {
         } else {
           setProgress(`Preparando vídeo ${label}…`);
           const poster = await captureVideoFrame(d.url, d.coverTime);
-          const video = await prepareVideo(d.file, d.duration ?? 0, (r) =>
-            setProgress(`Preparando vídeo ${label}… ${Math.round(r * 100)}%`),
+          const video = await prepareVideo(
+            d.file,
+            d.duration ?? 0,
+            (r) => setProgress(`Preparando vídeo ${label}… ${Math.round(r * 100)}%`),
+            { audioCtx, onMuted: () => (muted = true) },
           );
           files.push({ blob: video, ext: extFor(video, "mp4") }, { blob: poster, ext: extFor(poster, "webp") });
           pending.push({ id: d.id, kind: "video", width: d.width, height: d.height, duration: d.duration, alt: d.alt.trim() });
@@ -183,12 +188,16 @@ function Publish() {
       });
       if (id) {
         toast.success("Publicado no muro!");
+        if (muted) toast.warning("Neste aparelho o vídeo foi preparado sem som.");
         navigate({ to: "/post/$id", params: { id } });
+      } else {
+        void removeUploads(uploaded.map((u) => u.path));
       }
     } catch (e) {
       setError((e as Error).message || "Não foi possível publicar. Tente de novo.");
     } finally {
       setProgress(null);
+      void audioCtx?.close().catch(() => {});
     }
   };
 
@@ -308,8 +317,8 @@ function Publish() {
 
         {step === "selecionar" && <FieldError>{error}</FieldError>}
         <p className="text-xs text-muted-foreground">
-          Protótipo escolar: suas fotos e vídeos ficam guardados só neste aparelho e não aparecem em outros
-          celulares ou computadores.
+          Suas fotos e vídeos ficam guardados na internet e qualquer pessoa da rede pode ver. Não poste rostos
+          sem autorização, endereços ou nada que você não mostraria para a escola inteira.
         </p>
       </div>
 

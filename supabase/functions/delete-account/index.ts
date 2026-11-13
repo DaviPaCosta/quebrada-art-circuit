@@ -24,6 +24,15 @@ Deno.serve(async (req) => {
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return json({ error: "não autenticado" }, 401);
 
+  // Apaga os arquivos da pessoa (fotos, vídeos, stories, avatar) antes da conta.
+  const folder = data.user.id;
+  for (;;) {
+    const { data: files } = await admin.storage.from("media").list(folder, { limit: 100 });
+    if (!files?.length) break;
+    const { error: rmError } = await admin.storage.from("media").remove(files.map((f) => `${folder}/${f.name}`));
+    if (rmError) return json({ error: rmError.message }, 500);
+  }
+
   const { error: delError } = await admin.auth.admin.deleteUser(data.user.id);
   if (delError) return json({ error: delError.message }, 500);
   return json({ ok: true });

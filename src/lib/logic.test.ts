@@ -218,3 +218,15 @@ describe("destaques e vídeos", () => {
     expect(L.videoPlan({ canCompress: true }, 10e6, 61)).toEqual({ action: "recusar", error: "O vídeo pode ter no máximo 60 segundos." });
   });
 });
+
+describe("respostas", () => {
+  it("resposta a uma resposta vai para o comentário raiz", () => {
+    const comments = [
+      { id: "c1", postId: "p", authorId: "a", text: "raiz", likes: [], createdAt: "" },
+      { id: "c2", postId: "p", authorId: "b", text: "resp", parentId: "c1", likes: [], createdAt: "" },
+    ];
+    expect(L.rootCommentId(comments, "c2")).toBe("c1");
+    expect(L.rootCommentId(comments, "c1")).toBe("c1");
+    expect(L.rootCommentId(comments, undefined)).toBeUndefined();
+  });
+});

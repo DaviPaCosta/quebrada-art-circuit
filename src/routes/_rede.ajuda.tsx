@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_rede/ajuda")({
 });
 
 const FAQ = [
-  { q: "Meus dados vão para a internet?", a: "Não. Este é um protótipo escolar: contas, publicações e imagens ficam salvas apenas no navegador deste aparelho." },
+  { q: "Meus dados vão para a internet?", a: "Sim. Sua conta, suas publicações, fotos, vídeos e comentários ficam guardados na internet e aparecem para as outras pessoas da rede. Seu e-mail e sua data de nascimento ficam escondidos. Ao excluir a conta, tudo isso é apagado." },
   { q: "Posso postar foto de grafite que vi na rua?", a: "Sim, desde que credite o artista e o local seja público. Evite mostrar endereços residenciais ou pessoas sem autorização." },
   { q: "Como bloqueio alguém?", a: "No perfil ou nos três pontinhos da publicação, toque em Bloquear. Você desbloqueia em Configurações." },
   { q: "Quem analisa as denúncias?", a: "Professores e equipe de moderação, pelo painel de moderação." },

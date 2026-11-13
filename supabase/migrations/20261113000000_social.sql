@@ -145,7 +145,11 @@ as $$
   select coalesce((select p.is_moderator from public.profiles p where p.id = (select auth.uid())), false);
 $$;
 
-create or replace function public.blocked_between(a uuid, b uuid)
+-- Fica no esquema "private" (não exposto pela API), para ninguém consultar quem bloqueou quem.
+create schema if not exists private;
+grant usage on schema private to authenticated;
+
+create or replace function private.blocked_between(a uuid, b uuid)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
@@ -154,6 +158,8 @@ as $$
     where (blocker_id = a and blocked_id = b) or (blocker_id = b and blocked_id = a)
   );
 $$;
+revoke all on function private.blocked_between(uuid, uuid) from public, anon;
+grant execute on function private.blocked_between(uuid, uuid) to authenticated;
 
 -- Post que a pessoa logada pode ver (não removido ou dela/moderador, e sem bloqueio entre os dois).
 create or replace function public.post_visible(p_post uuid)
@@ -164,7 +170,7 @@ as $$
     select 1 from public.posts p
     where p.id = p_post
       and (not p.removed or p.author_id = (select auth.uid()) or public.is_moderator())
-      and not public.blocked_between((select auth.uid()), p.author_id)
+      and (public.is_moderator() or not private.blocked_between((select auth.uid()), p.author_id))
   );
 $$;
 
@@ -174,7 +180,7 @@ returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if p_user is null or p_user = p_actor or public.blocked_between(p_user, p_actor) then
+  if p_user is null or p_user = p_actor or private.blocked_between(p_user, p_actor) then
     return;
   end if;
   insert into public.notifications (user_id, actor_id, type, post_id, text)
@@ -210,6 +216,34 @@ end;
 $$;
 create trigger protect_post_columns before update on public.posts
   for each row execute function public.protect_post_columns();
+
+-- Na criação pelo app, datas e situação vêm do servidor (ninguém fixa post no topo nem story eterno).
+create or replace function public.force_insert_defaults()
+returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.created_at := now();
+    if tg_table_name = 'posts' then
+      new.removed := false;
+    elsif tg_table_name = 'stories' then
+      new.expires_at := now() + interval '24 hours';
+    elsif tg_table_name = 'reports' then
+      new.status := 'pendente';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create trigger force_insert_defaults before insert on public.posts
+  for each row execute function public.force_insert_defaults();
+create trigger force_insert_defaults before insert on public.stories
+  for each row execute function public.force_insert_defaults();
+create trigger force_insert_defaults before insert on public.comments
+  for each row execute function public.force_insert_defaults();
+create trigger force_insert_defaults before insert on public.reports
+  for each row execute function public.force_insert_defaults();
 
 -- Post em destaque precisa ser da própria pessoa.
 create or replace function public.check_pinned_post()
@@ -377,7 +411,7 @@ alter table public.reports enable row level security;
 -- posts
 create policy "posts: ver" on public.posts for select to authenticated
   using ((not removed or author_id = (select auth.uid()) or public.is_moderator())
-         and not public.blocked_between((select auth.uid()), author_id));
+         and (public.is_moderator() or not private.blocked_between((select auth.uid()), author_id)));
 create policy "posts: criar" on public.posts for insert to authenticated
   with check (author_id = (select auth.uid()));
 create policy "posts: editar" on public.posts for update to authenticated
@@ -395,7 +429,8 @@ create policy "midia: apagar" on public.post_media for delete to authenticated
 
 -- comments
 create policy "comentarios: ver" on public.comments for select to authenticated
-  using (public.post_visible(post_id) and not public.blocked_between((select auth.uid()), author_id));
+  using (public.post_visible(post_id)
+         and (public.is_moderator() or not private.blocked_between((select auth.uid()), author_id)));
 create policy "comentarios: criar" on public.comments for insert to authenticated
   with check (author_id = (select auth.uid()) and public.post_visible(post_id));
 create policy "comentarios: apagar" on public.comments for delete to authenticated
@@ -426,7 +461,7 @@ create policy "salvos: dono" on public.saves for all to authenticated
 -- seguir
 create policy "seguir: ver" on public.follows for select to authenticated using (true);
 create policy "seguir: seguir" on public.follows for insert to authenticated
-  with check (follower_id = (select auth.uid()) and not public.blocked_between(follower_id, followee_id));
+  with check (follower_id = (select auth.uid()) and not private.blocked_between(follower_id, followee_id));
 create policy "seguir: deixar" on public.follows for delete to authenticated
   using (follower_id = (select auth.uid()) or followee_id = (select auth.uid()));
 
@@ -437,7 +472,7 @@ create policy "bloqueios: dono" on public.blocks for all to authenticated
 -- stories
 create policy "stories: ver" on public.stories for select to authenticated
   using (author_id = (select auth.uid())
-         or (expires_at > now() and not public.blocked_between((select auth.uid()), author_id)));
+         or (expires_at > now() and not private.blocked_between((select auth.uid()), author_id)));
 create policy "stories: criar" on public.stories for insert to authenticated
   with check (author_id = (select auth.uid()));
 create policy "stories: apagar" on public.stories for delete to authenticated

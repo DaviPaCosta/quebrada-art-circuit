@@ -67,3 +67,8 @@ export async function uploadDataUrl(dataUrl: string): Promise<string> {
   const blob = await (await fetch(dataUrl)).blob();
   return (await uploadMedia(blob, extFor(blob, "webp"))).url;
 }
+
+/** Caminhos no bucket das mídias de um post/story (exemplos "seed:" não ocupam espaço). */
+export function postMediaPaths(media: { src: string; poster?: string | undefined }[]): string[] {
+  return media.flatMap((m) => [m.src, m.poster ?? ""]).map(pathFromUrl).filter((p): p is string => !!p);
+}

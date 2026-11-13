@@ -1,6 +1,7 @@
 import { getSupabase } from "../supabase";
 import type { Category, MediaItem, ReportTarget } from "../types";
 import { isDuplicateError } from "./errors";
+import { removeUploads } from "./media";
 import {
   rowsToSocial,
   type CommentRow,
@@ -141,9 +142,11 @@ export async function insertPost(input: NewPostInput): Promise<string> {
   return postId;
 }
 
-export async function deletePost(id: string) {
+/** Apaga o post e, depois, os arquivos dele no bucket. */
+export async function deletePost(id: string, paths: string[] = []) {
   const { error } = await getSupabase().from("posts").delete().eq("id", id);
   check(error, "Não conseguimos apagar a publicação.");
+  await removeUploads(paths).catch(() => {});
 }
 
 export async function setLike(postId: string, on: boolean) {
@@ -165,8 +168,9 @@ export async function setSave(postId: string, on: boolean) {
 }
 
 export async function setRemoved(postId: string, removed: boolean) {
-  const { error } = await getSupabase().from("posts").update({ removed }).eq("id", postId);
+  const { data, error } = await getSupabase().from("posts").update({ removed }).eq("id", postId).select("id");
   check(error, "Não conseguimos atualizar a publicação.");
+  if (!data?.length) throw new Error("Não conseguimos atualizar a publicação.");
 }
 
 /* ---------- Comentários ---------- */
@@ -184,8 +188,9 @@ export async function addComment(postId: string, text: string, parentId?: string
 }
 
 export async function deleteComment(id: string) {
-  const { error } = await getSupabase().from("comments").delete().eq("id", id);
+  const { data, error } = await getSupabase().from("comments").delete().eq("id", id).select("id");
   check(error, "Não conseguimos apagar o comentário.");
+  if (!data?.length) throw new Error("Não conseguimos apagar o comentário.");
 }
 
 export async function setCommentLike(commentId: string, on: boolean) {
@@ -258,9 +263,10 @@ export async function insertStory(media: MediaItem, caption: string): Promise<st
   return (data as { id: string }).id;
 }
 
-export async function deleteStory(id: string) {
+export async function deleteStory(id: string, paths: string[] = []) {
   const { error } = await getSupabase().from("stories").delete().eq("id", id);
   check(error, "Não conseguimos apagar o story.");
+  await removeUploads(paths).catch(() => {});
 }
 
 export async function markStoryViewed(storyId: string) {
@@ -297,14 +303,13 @@ export async function insertReport(input: { targetType: ReportTarget; targetId: 
 
 /** Moderador decide: "remover" esconde o post denunciado; "arquivar" só fecha a denúncia. */
 export async function resolveReport(report: { id: string; targetType: ReportTarget; targetId: string }, action: "remover" | "arquivar") {
-  const db = getSupabase();
-  const { error } = await db
+  if (action === "remover" && report.targetType === "post") await setRemoved(report.targetId, true);
+  if (action === "remover" && report.targetType === "comment") await deleteComment(report.targetId);
+  const { error } = await getSupabase()
     .from("reports")
     .update({ status: action === "remover" ? "removido" : "arquivado" })
     .eq("id", report.id);
   check(error, "Não conseguimos atualizar a denúncia.");
-  if (action === "remover" && report.targetType === "post") await setRemoved(report.targetId, true);
-  if (action === "remover" && report.targetType === "comment") await deleteComment(report.targetId);
 }
 
 /* ---------- Perfil ---------- */

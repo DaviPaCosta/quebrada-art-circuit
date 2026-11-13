@@ -58,11 +58,18 @@ const social = vi.hoisted(() => ({
   failLike: false,
 }));
 vi.mock("./api/social", () => ({
-  fetchSnapshot: async () =>
-    social.snapshot ?? { users: [], posts: [], comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [] },
+  fetchSnapshot: async () => {
+    if (social.failLike) throw new Error("Sem conexão com a internet. Tente de novo.");
+    return social.snapshot ?? { users: [], posts: [], comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [] };
+  },
   setLike: async () => {
     if (social.failLike) throw new Error("Sem conexão com a internet. Tente de novo.");
   },
+  setSave: async () => {
+    if (social.failLike) throw new Error("Sem conexão com a internet. Tente de novo.");
+  },
+  addComment: async () => "srv-c",
+  notifyMentions: async () => {},
 }));
 
 const flush = () => new Promise((r) => setTimeout(r, 5));
@@ -162,5 +169,37 @@ describe("sessão do Supabase no app", () => {
     expect(store.getState().posts[0]!.likes).toEqual(["a"]);
     await pending;
     expect(store.getState().posts[0]!.likes).toEqual([]);
+  });
+
+  it("duas ações que falham sem internet voltam as duas", async () => {
+    fake.session = { user: { id: "a", email: "a@b.co" } };
+    fetchOwnProfile.mockResolvedValue(row("a"));
+    social.snapshot = {
+      users: [], comments: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [],
+      posts: [{ id: "p1", authorId: "b", type: "imagem", media: [], title: "T", description: "", category: "Grafite", credits: "", tags: [], likes: [], createdAt: "2026-11-13T00:00:00Z" }],
+    };
+    const store = await freshStore();
+    store.hydrateStore();
+    await flush();
+    social.failLike = true;
+    const like = store.actions.toggleLike("p1");
+    const save = store.actions.toggleSave("p1");
+    await Promise.all([like, save]);
+    expect(store.getState().posts[0]!.likes).toEqual([]);
+    expect(store.getState().saved["a"] ?? []).toEqual([]);
+  });
+
+  it("comentário fora do cache não troca o id de outro comentário", async () => {
+    fake.session = { user: { id: "a", email: "a@b.co" } };
+    fetchOwnProfile.mockResolvedValue(row("a"));
+    social.snapshot = {
+      users: [], follows: {}, saved: {}, blocks: {}, stories: [], notifications: [], reports: [], posts: [],
+      comments: [{ id: "c-velho", postId: "p9", authorId: "b", text: "oi", likes: [], createdAt: "2026-11-13T00:00:00Z" }],
+    };
+    const store = await freshStore();
+    store.hydrateStore();
+    await flush();
+    await store.actions.addComment("p-fora-do-cache", "novo");
+    expect(store.getState().comments.map((c) => c.id)).toEqual(["c-velho"]);
   });
 });

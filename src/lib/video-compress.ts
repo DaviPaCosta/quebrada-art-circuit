@@ -37,7 +37,18 @@ type VideoWithFrames = HTMLVideoElement & {
   requestVideoFrameCallback?: (cb: () => void) => number;
 };
 
-export async function compressVideo(file: File | Blob, onProgress: (ratio: number) => void): Promise<Blob> {
+export interface CompressOptions {
+  /** AudioContext criado no toque do botão (iPhone só libera áudio dentro do toque). */
+  audioCtx?: AudioContext | undefined;
+  /** Chamado se o aparelho só deixou preparar o vídeo sem som. */
+  onMuted?: (() => void) | undefined;
+}
+
+export async function compressVideo(
+  file: File | Blob,
+  onProgress: (ratio: number) => void,
+  options: CompressOptions = {},
+): Promise<Blob> {
   const mime = pickMime();
   if (!mime) throw new Error("Este aparelho não consegue preparar vídeos.");
 
@@ -47,7 +58,8 @@ export async function compressVideo(file: File | Blob, onProgress: (ratio: numbe
   video.playsInline = true;
   video.preload = "auto";
 
-  let audioCtx: AudioContext | undefined;
+  let audioCtx: AudioContext | undefined = options.audioCtx;
+  const ownsAudio = !options.audioCtx;
   try {
     await new Promise<void>((resolve, reject) => {
       video.onloadedmetadata = () => resolve();
@@ -65,13 +77,14 @@ export async function compressVideo(file: File | Blob, onProgress: (ratio: numbe
 
     // Áudio: passa pelo AudioContext para ser gravado sem tocar no alto-falante.
     try {
-      audioCtx = new AudioContext();
+      audioCtx ??= new AudioContext();
       const source = audioCtx.createMediaElementSource(video);
       const dest = audioCtx.createMediaStreamDestination();
       source.connect(dest);
       dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
     } catch {
       video.muted = true; // sem áudio, mas o vídeo continua
+      options.onMuted?.();
     }
 
     const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: VIDEO_BPS, audioBitsPerSecond: AUDIO_BPS });
@@ -105,6 +118,7 @@ export async function compressVideo(file: File | Blob, onProgress: (ratio: numbe
       await video.play();
     } catch {
       video.muted = true;
+      options.onMuted?.();
       await video.play();
     }
     draw();
@@ -117,6 +131,6 @@ export async function compressVideo(file: File | Blob, onProgress: (ratio: numbe
   } finally {
     video.pause();
     URL.revokeObjectURL(url);
-    void audioCtx?.close().catch(() => {});
+    if (ownsAudio) void audioCtx?.close().catch(() => {});
   }
 }

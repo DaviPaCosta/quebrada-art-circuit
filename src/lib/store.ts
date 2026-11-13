@@ -4,6 +4,7 @@ import { createEmptyState } from "./mock-data";
 import * as L from "./logic";
 import * as Auth from "./auth";
 import * as Api from "./api/social";
+import { postMediaPaths } from "./api/media";
 import type { SocialSlice } from "./api/mappers";
 import { getSupabase, isSupabaseConfigured } from "./supabase";
 import type { AppState, MediaItem, ReportTarget, Settings, User } from "./types";
@@ -202,9 +203,14 @@ function me() {
 
 /**
  * Aplica a mudança na tela na hora e grava no banco por trás.
- * Se o banco recusar, volta ao estado anterior e avisa.
+ * Se o banco recusar, desfaz só essa mudança sobre o estado atual (outras ações em andamento ficam) e avisa.
+ * Sem `revert`, volta ao estado anterior se nada mais mudou; senão, recarrega do banco.
  */
-export async function optimistic(apply: (s: AppState) => AppState, remote: () => Promise<unknown>): Promise<boolean> {
+export async function optimistic(
+  apply: (s: AppState) => AppState,
+  remote: () => Promise<unknown>,
+  revert?: (s: AppState) => AppState,
+): Promise<boolean> {
   const before = state;
   const applied = apply(state);
   set(applied);
@@ -212,8 +218,8 @@ export async function optimistic(apply: (s: AppState) => AppState, remote: () =>
     await remote();
     return true;
   } catch (e) {
-    // Desfaz se nada mais mudou no meio do caminho; senão, recarrega do banco para não perder outras mudanças.
-    if (state === applied) set(before);
+    if (revert) set(revert(state));
+    else if (state === applied) set(before);
     else void loadSession();
     toast.error(e instanceof Error ? e.message : "Algo deu errado. Tente de novo.");
     return false;
@@ -292,13 +298,13 @@ export const actions = {
   },
   async deletePost(postId: string) {
     const id = me();
+    const post = state.posts.find((p) => p.id === postId && p.authorId === id);
+    if (!post) return;
+    const removedComments = state.comments.filter((c) => c.postId === postId);
     await optimistic(
-      (s) => ({
-        ...s,
-        posts: s.posts.filter((p) => !(p.id === postId && p.authorId === id)),
-        comments: s.comments.filter((c) => c.postId !== postId),
-      }),
-      () => Api.deletePost(postId),
+      (s) => ({ ...s, posts: s.posts.filter((p) => p.id !== postId), comments: s.comments.filter((c) => c.postId !== postId) }),
+      () => Api.deletePost(postId, postMediaPaths(post.media)),
+      (s) => ({ ...s, posts: [post, ...s.posts], comments: [...s.comments, ...removedComments] }),
     );
   },
   async createStory(media: MediaItem, caption: string): Promise<string | null> {
@@ -327,22 +333,27 @@ export const actions = {
   },
   async deleteStory(storyId: string) {
     const id = me();
-    if (id) await optimistic((s) => L.deleteStory(s, id, storyId), () => Api.deleteStory(storyId));
+    const story = state.stories.find((st) => st.id === storyId && st.authorId === id);
+    if (id && story) await optimistic((s) => L.deleteStory(s, id, storyId), () => Api.deleteStory(storyId, postMediaPaths([story.media])));
   },
   async toggleLike(postId: string) {
     const id = me();
     if (!id) return;
     const on = !state.posts.find((p) => p.id === postId)?.likes.includes(id);
-    await optimistic((s) => L.toggleLike(s, id, postId), () => Api.setLike(postId, on));
+    await optimistic((s) => L.toggleLike(s, id, postId), () => Api.setLike(postId, on), (s) => L.toggleLike(s, id, postId));
   },
   async addComment(postId: string, text: string, parentId?: string) {
     const id = me();
     if (!id) return;
+    const root = L.rootCommentId(state.comments, parentId);
     try {
-      const commentId = await Api.addComment(postId, text.trim(), parentId);
-      const next = L.addComment(state, id, postId, text, parentId);
-      const tempId = next.comments.at(-1)?.id;
-      set({ ...next, comments: next.comments.map((c) => (c.id === tempId ? { ...c, id: commentId } : c)) });
+      const commentId = await Api.addComment(postId, text.trim(), root);
+      const next = L.addComment(state, id, postId, text, root);
+      // Só troca o id se o comentário entrou no cache (post pode estar fora dos 300 mais recentes).
+      if (next !== state) {
+        const tempId = next.comments.at(-1)?.id;
+        set({ ...next, comments: next.comments.map((c) => (c.id === tempId ? { ...c, id: commentId } : c)) });
+      }
       void Api.notifyMentions(postId, commentId, mentions(text));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não conseguimos enviar o comentário.");
@@ -352,7 +363,7 @@ export const actions = {
     const id = me();
     if (!id) return;
     const on = !state.comments.find((c) => c.id === commentId)?.likes.includes(id);
-    await optimistic((s) => L.toggleCommentLike(s, id, commentId), () => Api.setCommentLike(commentId, on));
+    await optimistic((s) => L.toggleCommentLike(s, id, commentId), () => Api.setCommentLike(commentId, on), (s) => L.toggleCommentLike(s, id, commentId));
   },
   async deleteComment(commentId: string) {
     const id = me();
@@ -369,19 +380,19 @@ export const actions = {
     const id = me();
     if (!id) return;
     const on = !(state.saved[id] ?? []).includes(postId);
-    await optimistic((s) => L.toggleSave(s, id, postId), () => Api.setSave(postId, on));
+    await optimistic((s) => L.toggleSave(s, id, postId), () => Api.setSave(postId, on), (s) => L.toggleSave(s, id, postId));
   },
   async toggleFollow(targetId: string) {
     const id = me();
     if (!id) return;
     const on = !(state.follows[id] ?? []).includes(targetId);
-    await optimistic((s) => L.toggleFollow(s, id, targetId), () => Api.setFollow(targetId, on));
+    await optimistic((s) => L.toggleFollow(s, id, targetId), () => Api.setFollow(targetId, on), (s) => L.toggleFollow(s, id, targetId));
   },
   async toggleBlock(targetId: string) {
     const id = me();
     if (!id) return;
     const on = !(state.blocks[id] ?? []).includes(targetId);
-    await optimistic((s) => L.toggleBlock(s, id, targetId), () => Api.setBlock(targetId, on));
+    await optimistic((s) => L.toggleBlock(s, id, targetId), () => Api.setBlock(targetId, on), (s) => L.toggleBlock(s, id, targetId));
   },
   async report(input: { targetType: ReportTarget; targetId: string; reason: string; details: string }) {
     const id = me();
