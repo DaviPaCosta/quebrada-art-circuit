@@ -46,7 +46,11 @@ function Conversation() {
   const bottom = useRef<HTMLDivElement>(null);
   const gallery = useRef<HTMLInputElement>(null);
 
-  const scrollDown = () => window.setTimeout(() => bottom.current?.scrollIntoView({ block: "end" }), 50);
+  const scrollDown = (force = false) =>
+    window.setTimeout(() => {
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 400;
+      if (force || nearBottom) bottom.current?.scrollIntoView({ block: "end" });
+    }, 50);
 
   const add = useCallback((m: ChatMessage) => {
     setMessages((list) => (list.some((x) => x.id === m.id) ? list : [...list, m]));
@@ -56,13 +60,18 @@ function Conversation() {
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setMessages([]);
     Promise.all([Chat.fetchMessages(id), Chat.otherLastRead(id, meId)])
       .then(([list, read]) => {
         if (!alive) return;
-        setMessages(list);
+        // Junta com o que chegou em tempo real durante o carregamento.
+        setMessages((live) => {
+          const ids = new Set(list.map((m) => m.id));
+          return [...list, ...live.filter((m) => !ids.has(m.id))].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        });
         setHasOlder(list.length >= 50);
         setOtherRead(read);
-        scrollDown();
+        scrollDown(true);
       })
       .catch((e) => toast.error(e instanceof Error ? e.message : "Não conseguimos abrir a conversa."))
       .finally(() => alive && setLoading(false));

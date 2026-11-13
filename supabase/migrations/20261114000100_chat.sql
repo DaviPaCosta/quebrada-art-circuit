@@ -76,11 +76,27 @@ create policy "mensagens: enviar" on public.messages for insert to authenticated
   with check (
     sender_id = (select auth.uid())
     and kind in ('text', 'image', 'video')
+    and (kind = 'text' or (media_path is not null and media_path like conversation_id::text || '/%'))
+    and (poster_path is null or poster_path like conversation_id::text || '/%')
     and private.is_member(conversation_id)
     and not private.blocked_between((select auth.uid()), private.other_member(conversation_id))
   );
-create policy "mensagens: apagar a própria" on public.messages for delete to authenticated
-  using (sender_id = (select auth.uid()));
+-- Sem apagar mensagem pelo app: uma mensagem denunciada não pode sumir antes da moderação.
+
+-- "Lida até" usa o relógio do servidor e nunca volta no tempo.
+create or replace function public.force_read_time()
+returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    new.last_read_at := greatest(old.last_read_at, now());
+  end if;
+  return new;
+end;
+$$;
+create trigger force_read_time before update on public.conversation_members
+  for each row execute function public.force_read_time();
 
 -- Data sempre do servidor; conversa sobe na lista.
 create or replace function public.on_message_insert()
@@ -180,10 +196,46 @@ $$;
 revoke all on function public.my_conversations() from public, anon;
 grant execute on function public.my_conversations() to authenticated;
 
--- Denúncia de mensagem: o texto vai junto (o moderador não lê conversas).
+-- Denúncia de mensagem: o conteúdo vem do banco (não do app) e só quem está na conversa denuncia.
 alter table public.reports drop constraint reports_target_type_check;
 alter table public.reports add constraint reports_target_type_check
   check (target_type in ('post', 'user', 'comment', 'message'));
+alter table public.reports add column media_path text;
+
+create or replace function public.fill_message_report()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  m record;
+  sender text;
+begin
+  if new.target_type <> 'message' then
+    return new;
+  end if;
+  select msg.* into m
+    from public.messages msg
+   where msg.id::text = new.target_id
+     and exists (select 1 from public.conversation_members cm
+                  where cm.conversation_id = msg.conversation_id and cm.user_id = new.reporter_id);
+  if not found then
+    raise exception 'denuncia_invalida';
+  end if;
+  select username into sender from public.profiles where id = m.sender_id;
+  new.details := format('Mensagem de @%s: %s', coalesce(sender, 'conta removida'),
+    case m.kind when 'text' then '"' || coalesce(m.body, '') || '"' when 'image' then '[foto]' when 'video' then '[vídeo]' else '[mídia expirada]' end);
+  new.media_path := case when m.kind = 'video' then coalesce(m.poster_path, m.media_path) else m.media_path end;
+  return new;
+end;
+$$;
+create trigger fill_message_report before insert on public.reports
+  for each row execute function public.fill_message_report();
+
+-- Moderador pode abrir só a foto/capa de mensagens denunciadas.
+create policy "chat: moderador abre denunciada" on storage.objects for select to authenticated
+  using (bucket_id = 'chat' and public.is_moderator() and exists (
+    select 1 from public.reports r where r.target_type = 'message' and r.media_path = name
+  ));
 
 -- Moderador apaga uma mensagem denunciada.
 create or replace function public.moderate_message(p_message uuid)
@@ -216,6 +268,8 @@ create policy "chat: membros abrem" on storage.objects for select to authenticat
     select 1 from public.conversation_members m
     where m.conversation_id::text = (storage.foldername(name))[1] and m.user_id = (select auth.uid())
   ));
+create policy "chat: quem enviou apaga" on storage.objects for delete to authenticated
+  using (bucket_id = 'chat' and owner_id = (select auth.uid())::text);
 create policy "chat: membros enviam" on storage.objects for insert to authenticated
   with check (bucket_id = 'chat' and exists (
     select 1 from public.conversation_members m

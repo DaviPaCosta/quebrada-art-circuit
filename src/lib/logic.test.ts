@@ -246,6 +246,10 @@ describe("arquivar e editar posts", () => {
     expect(L.archivedPosts(s, "u8")).toEqual([]);
     expect(L.visiblePosts(L.setArchived(s, p.authorId, p.id, false), "u8").some((x) => x.id === p.id)).toBe(true);
   });
+  it("post arquivado não pode ficar em destaque no perfil", () => {
+    const s = L.setArchived(s0, p.authorId, p.id, true);
+    expect(L.updateProfile(s, p.authorId, { pinnedPostId: p.id }).ok).toBe(false);
+  });
   it("só o autor arquiva", () => {
     expect(L.setArchived(s0, "outra-pessoa", p.id, true)).toBe(s0);
   });

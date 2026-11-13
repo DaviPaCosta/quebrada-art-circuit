@@ -13,9 +13,13 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export async function refreshConversations() {
-  if (!isSupabaseConfigured()) return;
+  if (!isSupabaseConfigured() || !loadedFor) return;
+  const forUser = loadedFor;
   try {
-    conversations = await Chat.myConversations();
+    const list = await Chat.myConversations();
+    // Trocou de conta enquanto carregava (computador da escola): descarta.
+    if (forUser !== loadedFor) return;
+    conversations = list;
     emit();
   } catch {
     /* sem internet: mantém a lista anterior */

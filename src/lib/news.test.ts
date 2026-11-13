@@ -35,6 +35,11 @@ describe("leitor de notícias (RSS)", () => {
     expect(parseRss(longo, "X")[0]!.summary.length).toBeLessThanOrEqual(240);
   });
 
+  it("código de caractere inválido não derruba o feed", () => {
+    const xml = `<rss><item><title>Ok &#99999999; fim</title><link>https://a.b/c</link></item></rss>`;
+    expect(parseRss(xml, "X")[0]!.title).toBe("Ok &#99999999; fim");
+  });
+
   it("ignora itens sem título ou link", () => {
     expect(parseRss("<rss><item><title>Sem link</title></item></rss>", "X")).toEqual([]);
   });

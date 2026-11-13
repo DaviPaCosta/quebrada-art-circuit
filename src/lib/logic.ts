@@ -143,7 +143,7 @@ export function updateProfile(s: AppState, userId: string, patch: ProfilePatch):
     if (s.users.some((u) => u.id !== userId && u.username === clean.username)) return { ok: false, error: "Esse nome de usuário já está em uso." };
   }
   if (clean.name !== undefined && !clean.name.trim()) return { ok: false, error: "Informe seu nome." };
-  if (clean.pinnedPostId && !s.posts.some((p) => p.id === clean.pinnedPostId && p.authorId === userId && !p.removed)) return { ok: false, error: "Escolha uma obra sua para destacar." };
+  if (clean.pinnedPostId && !s.posts.some((p) => p.id === clean.pinnedPostId && p.authorId === userId && !p.removed && !p.archived)) return { ok: false, error: "Escolha uma obra sua para destacar." };
   return { ok: true, state: { ...s, users: s.users.map((u) => u.id === userId ? { ...u, ...clean } : u) } };
 }
 

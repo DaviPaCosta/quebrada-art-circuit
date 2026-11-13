@@ -15,6 +15,10 @@ alter table public.news enable row level security;
 -- Qualquer pessoa logada lê; só a função do servidor (service role) grava.
 create policy "noticias: ler" on public.news for select to authenticated using (true);
 
+-- Controle de frequência: a função recusa rodar de novo antes de 6 horas.
+create table public.news_runs (ran_at timestamptz primary key default now());
+alter table public.news_runs enable row level security; -- sem políticas: só a função (service role) mexe
+
 -- Busca as notícias todo dia às 6h de Brasília (09:00 UTC).
 select cron.schedule(
   'buscar-noticias',
@@ -23,7 +27,8 @@ select cron.schedule(
   select net.http_post(
     url := 'https://eiyydsceqgomnsghbscf.supabase.co/functions/v1/fetch-news',
     headers := '{"Content-Type": "application/json"}'::jsonb,
-    body := '{}'::jsonb
+    body := '{}'::jsonb,
+    timeout_milliseconds := 60000
   );
   $$
 );

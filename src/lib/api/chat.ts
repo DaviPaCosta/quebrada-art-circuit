@@ -161,7 +161,7 @@ export async function reportMessage(me: string, message: ChatMessage, reason: st
       target_type: "message",
       target_id: message.id,
       reason,
-      details: message.kind === "text" ? `Mensagem: "${message.body ?? ""}"` : `Mensagem com ${message.kind === "image" ? "foto" : "vídeo"}`,
+      details: "", // o banco preenche com o conteúdo real da mensagem
     });
   if (error) fail("Não conseguimos enviar a denúncia.", error);
 }

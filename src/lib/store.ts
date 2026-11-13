@@ -307,10 +307,10 @@ export const actions = {
       (s) => ({ ...s, posts: [post, ...s.posts], comments: [...s.comments, ...removedComments] }),
     );
   },
-  async setArchived(postId: string, on: boolean) {
+  async setArchived(postId: string, on: boolean): Promise<boolean> {
     const id = me();
-    if (!id) return;
-    await optimistic(
+    if (!id) return false;
+    return optimistic(
       (s) => L.setArchived(s, id, postId, on),
       () => Api.setArchived(postId, on),
       (s) => L.setArchived(s, id, postId, !on),

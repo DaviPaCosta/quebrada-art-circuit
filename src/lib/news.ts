@@ -21,7 +21,7 @@ function decodeEntities(s: string): string {
   return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
     if (code[0] === "#") {
       const n = code[1]?.toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
-      return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+      return Number.isFinite(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
     }
     return ENTITIES[code.toLowerCase()] ?? m;
   });
@@ -84,7 +84,7 @@ export function parseRss(xml: string, source: string): NewsItem[] {
     const pub = tag(block, "pubDate") ?? tag(block, "dc:date");
     const time = pub ? Date.parse(pub) : NaN;
     out.push({
-      title: decodeEntities(title),
+      title,
       url,
       summary,
       image: image && /^https:\/\//.test(image) ? image : null,

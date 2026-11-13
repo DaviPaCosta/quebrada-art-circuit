@@ -74,6 +74,7 @@ export interface ReportRow {
   details: string;
   status: Report["status"];
   created_at: string;
+  media_path?: string | null;
 }
 
 export interface PublicProfileRow {
@@ -221,6 +222,7 @@ export function rowsToSocial(r: SocialRows): SocialSlice {
     details: x.details,
     createdAt: x.created_at,
     status: x.status,
+    ...(x.media_path ? { mediaPath: x.media_path } : {}),
   }));
 
   return {

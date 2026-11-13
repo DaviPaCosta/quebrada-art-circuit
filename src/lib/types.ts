@@ -119,6 +119,8 @@ export interface Report {
   details: string;
   createdAt: string;
   status: ReportStatus;
+  /** Foto/capa de uma mensagem denunciada (pasta privada das conversas). */
+  mediaPath?: string | undefined;
 }
 
 export interface CulturalEvent {

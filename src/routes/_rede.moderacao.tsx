@@ -125,7 +125,12 @@ function ReportItem({ report }: { report: Report }) {
 
       <div className="mt-3 rounded-md bg-muted p-3 text-sm">
         {report.targetType === "message" ? (
-          <p className="text-muted-foreground">Mensagem privada: o texto denunciado está acima. A conversa em si não fica visível para a moderação.</p>
+          <div className="space-y-2">
+            {report.mediaPath && (
+              <MediaImage src={`chat:${report.mediaPath}`} alt="Mídia da mensagem denunciada" width={400} height={400} className="max-h-48 rounded object-contain" />
+            )}
+            <p className="text-muted-foreground">Mensagem privada: só a mensagem denunciada aparece aqui, nunca a conversa inteira.</p>
+          </div>
         ) : !target ? (
           <p className="text-muted-foreground">Conteúdo não encontrado (já removido).</p>
         ) : (

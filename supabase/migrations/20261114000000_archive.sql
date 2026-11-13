@@ -5,11 +5,8 @@ drop policy "posts: ver" on public.posts;
 create policy "posts: ver" on public.posts for select to authenticated
   using (
     author_id = (select auth.uid())
-    or (
-      not archived
-      and (not removed or public.is_moderator())
-      and (public.is_moderator() or not private.blocked_between((select auth.uid()), author_id))
-    )
+    or public.is_moderator()  -- moderação vê tudo (inclusive arquivado e removido) para poder agir
+    or (not archived and not removed and not private.blocked_between((select auth.uid()), author_id))
   );
 
 create or replace function public.post_visible(p_post uuid)
@@ -21,11 +18,8 @@ as $$
     where p.id = p_post
       and (
         p.author_id = (select auth.uid())
-        or (
-          not p.archived
-          and (not p.removed or public.is_moderator())
-          and (public.is_moderator() or not private.blocked_between((select auth.uid()), p.author_id))
-        )
+        or public.is_moderator()
+        or (not p.archived and not p.removed and not private.blocked_between((select auth.uid()), p.author_id))
       )
   );
 $$;

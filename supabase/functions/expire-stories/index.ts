@@ -52,5 +52,19 @@ Deno.serve(async (req) => {
     if (upError) return json({ error: upError.message }, 500);
     midiasConversa = velhas.length;
   }
-  return json({ ok: true, apagados, midiasConversa });
+  // Arquivos soltos na pasta das conversas (envio que falhou, mensagem removida) com mais de 30 dias.
+  let soltos = 0;
+  const { data: pastas } = await admin.storage.from("chat").list("", { limit: 1000 });
+  for (const pasta of pastas ?? []) {
+    if (pasta.id) continue; // só pastas (uma por conversa)
+    const { data: arquivos } = await admin.storage.from("chat").list(pasta.name, { limit: 1000 });
+    const velhos = (arquivos ?? [])
+      .filter((a) => a.id && a.created_at && a.created_at < limite)
+      .map((a) => `${pasta.name}/${a.name}`);
+    if (velhos.length) {
+      await admin.storage.from("chat").remove(velhos);
+      soltos += velhos.length;
+    }
+  }
+  return json({ ok: true, apagados, midiasConversa, soltos });
 });

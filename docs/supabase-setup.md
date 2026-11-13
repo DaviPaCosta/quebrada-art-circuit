@@ -70,3 +70,18 @@ Para corrigir o papel de alguém, mude `role` para `aluno` ou `professor` na mes
    `select vault.create_secret('<o texto>', 'cron_secret');`. Depois rode `supabase/migrations/20261113000200_cron_check.sql`.
 4. **SQL Editor:** rode `supabase/migrations/20261113000100_cron_stories.sql` (agenda a limpeza de hora em hora).
 5. **Conta oficial:** crie a conta `@vozesdomuro` pelo app, confirme o e-mail e rode `supabase/seed/conta_oficial.sql`.
+
+---
+
+# Etapas 3, 4 e 5 — perfil, conversas e notícias
+
+1. **SQL Editor**, nesta ordem (uma query de cada vez):
+   - `supabase/migrations/20261114000000_archive.sql`
+   - `supabase/migrations/20261114000100_chat.sql`
+   - `supabase/migrations/20261114000200_news.sql`
+   - Depois `supabase/tests/etapas_check.sql`: todas as linhas com `ok = true`.
+2. **Edge Functions**:
+   - Atualizar `expire-stories` com o código novo (agora também limpa mídia de conversas).
+   - Nova função `fetch-news` (código de `supabase/functions/fetch-news/index.ts`), com **Verify JWT desligado**.
+3. **Primeira carga de notícias** (sem esperar as 6h), no SQL Editor:
+   `select net.http_post(url := 'https://eiyydsceqgomnsghbscf.supabase.co/functions/v1/fetch-news', headers := '{"Content-Type": "application/json"}'::jsonb, body := '{}'::jsonb, timeout_milliseconds := 60000);`

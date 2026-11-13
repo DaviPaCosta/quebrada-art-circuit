@@ -22,7 +22,7 @@ function decodeEntities(s: string): string {
   return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
     if (code[0] === "#") {
       const n = code[1]?.toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
-      return Number.isFinite(n) ? String.fromCodePoint(n) : m;
+      return Number.isFinite(n) && n >= 0 && n <= 0x10ffff ? String.fromCodePoint(n) : m;
     }
     return ENTITIES[code.toLowerCase()] ?? m;
   });
@@ -85,7 +85,7 @@ export function parseRss(xml: string, source: string): NewsItem[] {
     const pub = tag(block, "pubDate") ?? tag(block, "dc:date");
     const time = pub ? Date.parse(pub) : NaN;
     out.push({
-      title: decodeEntities(title),
+      title,
       url,
       summary,
       image: image && /^https:\/\//.test(image) ? image : null,
@@ -148,13 +148,23 @@ async function read(name: string, url: string, max: number): Promise<NewsItem[]>
   }
 }
 
+const COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
 Deno.serve(async () => {
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // Não roda de novo antes de 6 h (evita que alguém chame sem parar e gaste a cota).
+  const { data: ultima } = await admin.from("news_runs").select("ran_at").order("ran_at", { ascending: false }).limit(1).maybeSingle();
+  if (ultima && Date.now() - Date.parse(ultima.ran_at) < COOLDOWN_MS) {
+    return new Response(JSON.stringify({ ok: true, pulado: "rodou há pouco" }), { headers: { "Content-Type": "application/json" } });
+  }
+  await admin.from("news_runs").insert({ ran_at: new Date().toISOString() });
+  await admin.from("news_runs").delete().lt("ran_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
   const lists = await Promise.all([
     ...FEEDS.map(([name, url]) => read(name, url, 10)),
     ...GOOGLE_QUERIES.map((q) => read("Google News", googleUrl(q), 8)),
   ]);
   const items = dedupeNews(lists.flat());
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const rows = items.map((n) => ({
     url: n.url,
     title: n.title.slice(0, 300),

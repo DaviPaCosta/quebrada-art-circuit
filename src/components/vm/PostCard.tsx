@@ -103,8 +103,9 @@ export const PostCard = memo(function PostCard({
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={async () => {
-                      await actions.setArchived(post.id, !post.archived);
-                      toast.success(post.archived ? "Publicação de volta no perfil" : "Arquivada: só você vê, na aba Arquivados");
+                      const wasArchived = post.archived;
+                      if (await actions.setArchived(post.id, !wasArchived))
+                        toast.success(wasArchived ? "Publicação de volta no perfil" : "Arquivada: só você vê, na aba Arquivados");
                     }}
                   >
                     {post.archived ? <ArchiveRestore /> : <Archive />} {post.archived ? "Desarquivar" : "Arquivar"}
