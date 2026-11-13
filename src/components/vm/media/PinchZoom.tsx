@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pinchScale } from "@/lib/camera";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,17 @@ export function PinchZoom({ children, persist = false, className }: { children: 
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
   const [origin, setOrigin] = useState<Point>({ x: 50, y: 50 });
   const [active, setActive] = useState(false);
+
+  // Com dois dedos na foto, o navegador não pode rolar a página (senão cancela a pinça).
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const stop = (e: TouchEvent) => {
+      if (e.touches.length >= 2) e.preventDefault();
+    };
+    el.addEventListener("touchmove", stop, { passive: false });
+    return () => el.removeEventListener("touchmove", stop);
+  }, []);
 
   const reset = () => {
     setScale(1);
@@ -69,8 +80,8 @@ export function PinchZoom({ children, persist = false, className }: { children: 
     <div
       ref={box}
       className={cn("relative size-full", zoomed && "z-40", className)}
-      // Um dedo continua rolando a página; dois dedos são nossos (pinça).
-      style={{ touchAction: persist && zoomed ? "none" : "pan-y" }}
+      // Um dedo continua rolando a página e deslizando o carrossel; dois dedos são nossos (pinça).
+      style={{ touchAction: persist && zoomed ? "none" : "pan-x pan-y" }}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}

@@ -13,8 +13,16 @@ export function recordProgress(elapsedMs: number): number {
   return Math.min(1, Math.max(0, elapsedMs / MAX_RECORD_MS));
 }
 
+/** Para meio segundo antes do limite: o arquivo final nunca passa de 60 s. */
+const STOP_AT_MS = MAX_RECORD_MS - 500;
 export function shouldStopRecording(elapsedMs: number): boolean {
-  return elapsedMs >= MAX_RECORD_MS;
+  return elapsedMs >= STOP_AT_MS;
+}
+
+/** Vídeo com menos de 1 s é descartado (vira foto). */
+export const MIN_CLIP_MS = 1000;
+export function clipTooShort(elapsedMs: number): boolean {
+  return elapsedMs < MIN_CLIP_MS;
 }
 
 const RECORDER_MIMES = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];

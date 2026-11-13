@@ -1,6 +1,6 @@
 // "Ajudante" do app instalável: abre rápido e mostra uma tela amigável sem internet.
 // Nunca guarda dados do Supabase (posts, contas, fotos): esses sempre vêm da internet.
-const VERSION = "vozes-v1";
+const VERSION = "vozes-v2";
 const SHELL = ["/offline.html", "/icons/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -27,7 +27,8 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Arquivos do app com nome único (JS/CSS/imagens do build): guarda para abrir mais rápido.
-  if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/")) {
+  // (Ícones não têm nome único, então só /assets/ fica guardado; a cada versão nova do ajudante o cache é refeito.)
+  if (url.pathname.startsWith("/assets/")) {
     event.respondWith(
       caches.match(req).then(
         (hit) =>

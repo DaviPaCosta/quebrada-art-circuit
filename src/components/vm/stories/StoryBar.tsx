@@ -5,8 +5,9 @@ import { UserAvatar } from "@/components/vm/UserAvatar";
 import { storyGroups, type StoryGroup } from "@/lib/logic";
 import { useAppState, useCurrentUser } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { CameraCapture } from "../camera/CameraCapture";
 import { StoryComposer } from "./StoryComposer";
+
+const CameraCapture = lazy(() => import("../camera/CameraCapture").then((m) => ({ default: m.CameraCapture })));
 
 const StoryViewer = lazy(() => import("./StoryViewer").then((m) => ({ default: m.StoryViewer })));
 
@@ -81,6 +82,7 @@ export function StoryBar() {
       </div>
 
       {cameraOpen && (
+        <Suspense fallback={null}>
         <CameraCapture
           multiple={false}
           onFiles={(files) => {
@@ -89,6 +91,7 @@ export function StoryBar() {
           }}
           onClose={() => setCameraOpen(false)}
         />
+        </Suspense>
       )}
       <StoryComposer file={file} onClose={() => setFile(null)} />
       {open && (

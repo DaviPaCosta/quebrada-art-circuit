@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickRecorderMime, pinchScale, pressAction, recordProgress, shouldStopRecording } from "./camera";
+import { clipTooShort, pickRecorderMime, pinchScale, pressAction, recordProgress, shouldStopRecording } from "./camera";
 
 describe("botão da câmera", () => {
   it("toque rápido é foto, segurar é vídeo", () => {
@@ -12,8 +12,14 @@ describe("botão da câmera", () => {
     expect(recordProgress(0)).toBe(0);
     expect(recordProgress(30_000)).toBe(0.5);
     expect(recordProgress(90_000)).toBe(1);
-    expect(shouldStopRecording(59_999)).toBe(false);
-    expect(shouldStopRecording(60_000)).toBe(true);
+    // Para um pouco antes de 60 s para o arquivo nunca passar do limite.
+    expect(shouldStopRecording(59_400)).toBe(false);
+    expect(shouldStopRecording(59_500)).toBe(true);
+  });
+  it("gravação curtíssima não vira vídeo", () => {
+    expect(clipTooShort(400)).toBe(true);
+    expect(clipTooShort(999)).toBe(true);
+    expect(clipTooShort(1000)).toBe(false);
   });
   it("escolhe o formato de gravação suportado", () => {
     expect(pickRecorderMime((t) => t === "video/webm")).toBe("video/webm");

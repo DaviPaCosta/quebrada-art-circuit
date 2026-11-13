@@ -15,19 +15,33 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
 export function probeVideo(url: string): Promise<{ width: number; height: number; duration: number }> {
   return new Promise((resolve, reject) => {
     const v = document.createElement("video");
+    let done = false;
+    const finish = (fn: () => void) => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timer);
+      v.ondurationchange = null;
+      v.removeAttribute("src");
+      v.load();
+      fn();
+    };
+    const fail = () => finish(() => reject(new Error("Não foi possível ler esse vídeo. Prefira MP4 (H.264).")));
+    const timer = window.setTimeout(fail, 5000);
     v.preload = "metadata";
     v.muted = true;
     v.onloadedmetadata = () => {
-      if (Number.isFinite(v.duration)) return resolve({ width: v.videoWidth, height: v.videoHeight, duration: v.duration });
+      const ok = () => {
+        const meta = { width: v.videoWidth, height: v.videoHeight, duration: v.duration };
+        finish(() => resolve(meta));
+      };
+      if (Number.isFinite(v.duration)) return ok();
       // Vídeos gravados no navegador (WebM) às vezes chegam sem duração: pular para o fim força o cálculo.
       v.ondurationchange = () => {
-        if (!Number.isFinite(v.duration)) return;
-        v.ondurationchange = null;
-        resolve({ width: v.videoWidth, height: v.videoHeight, duration: v.duration });
+        if (Number.isFinite(v.duration)) ok();
       };
       v.currentTime = Number.MAX_SAFE_INTEGER;
     };
-    v.onerror = () => reject(new Error("Não foi possível ler esse vídeo. Prefira MP4 (H.264)."));
+    v.onerror = fail;
     v.src = url;
   });
 }

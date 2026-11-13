@@ -1,6 +1,6 @@
 import { CameraOff, Image as ImageIcon, RefreshCcw, X, Zap, ZapOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { PHOTO_PRESS_MS, pickRecorderMime, recordProgress, shouldStopRecording } from "@/lib/camera";
+import { clipTooShort, PHOTO_PRESS_MS, pickRecorderMime, recordProgress, shouldStopRecording } from "@/lib/camera";
 import { cn } from "@/lib/utils";
 
 const GALLERY_ACCEPT = "image/*,video/mp4,video/webm,video/quicktime";
@@ -42,6 +42,8 @@ export function CameraCapture({
   const raf = useRef<number | undefined>(undefined);
   const galleryRef = useRef<HTMLInputElement>(null);
   const recordingRef = useRef(false);
+  /** Saiu da câmera: nada que ainda esteja terminando de gravar deve ser entregue. */
+  const cancelled = useRef(false);
 
   const [facing, setFacing] = useState<Facing>("environment");
   const [error, setError] = useState<CamError>(null);
@@ -51,6 +53,8 @@ export function CameraCapture({
   const [torchSupported, setTorchSupported] = useState(false);
   const [torch, setTorch] = useState(false);
   const [flash, setFlash] = useState(false);
+  /** Gravação terminando de ser salva: o botão espera. */
+  const [saving, setSaving] = useState(false);
 
   const stopStream = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -63,11 +67,13 @@ export function CameraCapture({
     setReady(false);
     setTorch(false);
     async function start() {
+      stopStream();
+      if (videoRef.current) videoRef.current.srcObject = null;
       if (!navigator.mediaDevices?.getUserMedia) {
         setError({ title: "Câmera indisponível", text: "Este navegador não permite usar a câmera aqui. Use a galeria." });
         return;
       }
-      const video = { facingMode: { ideal: facing }, width: { ideal: 1080 }, height: { ideal: 1920 } };
+      const video = { facingMode: { ideal: facing }, aspectRatio: { ideal: 9 / 16 }, height: { ideal: 1280 } };
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
@@ -81,7 +87,6 @@ export function CameraCapture({
         }
       }
       if (!alive) return stream.getTracks().forEach((t) => t.stop());
-      stopStream();
       streamRef.current = stream;
       const el = videoRef.current;
       if (el) {
@@ -103,9 +108,14 @@ export function CameraCapture({
   // Desliga tudo ao sair da tela.
   useEffect(
     () => () => {
+      cancelled.current = true;
       window.clearTimeout(pressTimer.current);
       if (raf.current) cancelAnimationFrame(raf.current);
-      if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+      const rec = recorderRef.current;
+      if (rec?.state === "recording") {
+        rec.onstop = null;
+        rec.stop();
+      }
       stopStream();
     },
     [stopStream],
@@ -133,7 +143,7 @@ export function CameraCapture({
     window.setTimeout(() => setFlash(false), 150);
     canvas.toBlob(
       (blob) => {
-        if (blob) onFiles([new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" })]);
+        if (blob && !cancelled.current) onFiles([new File([blob], `foto-${Date.now()}.jpg`, { type: "image/jpeg" })]);
       },
       "image/jpeg",
       0.92,
@@ -142,7 +152,10 @@ export function CameraCapture({
 
   const stopRecording = useCallback(() => {
     if (raf.current) cancelAnimationFrame(raf.current);
-    if (recorderRef.current?.state === "recording") recorderRef.current.stop();
+    if (recorderRef.current?.state === "recording") {
+      setSaving(true);
+      recorderRef.current.stop();
+    }
     recordingRef.current = false;
     setRecording(false);
     setProgress(0);
@@ -153,17 +166,28 @@ export function CameraCapture({
     if (!stream || typeof MediaRecorder === "undefined") return takePhoto();
     const mime = pickRecorderMime((t) => MediaRecorder.isTypeSupported(t));
     if (!mime) return takePhoto();
-    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 2_500_000 });
+    let recorder: MediaRecorder;
+    try {
+      // 1,5 Mbps: um minuto fica em ~11 MB, abaixo do limite de quem não consegue comprimir.
+      recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_500_000 });
+    } catch {
+      return takePhoto();
+    }
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
     recorder.onstop = () => {
+      setSaving(false);
+      if (cancelled.current) return;
+      const elapsed = performance.now() - recordStart.current;
       const type = mime.split(";")[0] ?? "video/webm";
       const blob = new Blob(chunks, { type });
+      // Soltou logo depois de começar: vira foto em vez de um vídeo de meio segundo.
+      if (clipTooShort(elapsed)) return takePhoto();
       if (blob.size > 0) onFiles([new File([blob], `video-${Date.now()}.${type.endsWith("mp4") ? "mp4" : "webm"}`, { type })]);
     };
     recorderRef.current = recorder;
-    recorder.start(500);
     recordStart.current = performance.now();
+    recorder.start(500);
     recordingRef.current = true;
     setRecording(true);
     const tick = () => {
@@ -176,26 +200,33 @@ export function CameraCapture({
   };
 
   const onPressStart = (e: React.PointerEvent) => {
-    if (!ready) return;
+    if (!ready || saving) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     pressStart.current = performance.now();
     pressTimer.current = window.setTimeout(startRecording, PHOTO_PRESS_MS);
   };
 
-  const onPressEnd = () => {
+  const onPressEnd = (e: React.PointerEvent) => {
     if (!ready || !pressStart.current) return;
     window.clearTimeout(pressTimer.current);
     const heldMs = performance.now() - pressStart.current;
     pressStart.current = 0;
     if (recordingRef.current) stopRecording();
-    else if (heldMs < PHOTO_PRESS_MS) takePhoto();
+    else if (heldMs < PHOTO_PRESS_MS && e.type !== "pointercancel") takePhoto();
     // Senão: a gravação já parou sozinha nos 60 s; soltar o dedo não tira foto.
   };
+
+  // Esc (computador) fecha a câmera.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const ring = 2 * Math.PI * 36;
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black text-white" role="dialog" aria-label="Câmera">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label="Câmera">
       <video
         ref={videoRef}
         playsInline
@@ -250,7 +281,7 @@ export function CameraCapture({
         <button
           type="button"
           aria-label="Toque para foto, segure para gravar vídeo"
-          disabled={!ready}
+          disabled={!ready || saving}
           onPointerDown={onPressStart}
           onPointerUp={onPressEnd}
           onPointerCancel={onPressEnd}

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 export function installHint(userAgent: string, standalone: boolean): "android" | "ios" | null {
   if (standalone) return null;
   if (/iphone|ipad|ipod/i.test(userAgent)) return "ios";
+  // iPad novo se apresenta como Mac; quem tem toque é iPad.
+  if (/macintosh/i.test(userAgent) && typeof navigator !== "undefined" && navigator.maxTouchPoints > 1) return "ios";
   if (/android/i.test(userAgent)) return "android";
   return null;
 }
@@ -18,9 +20,10 @@ export function isStandalone(): boolean {
 export function registerServiceWorker() {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
   if (location.hostname === "localhost" || location.hostname === "127.0.0.1") return; // não atrapalha o desenvolvimento
-  window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("/sw.js").catch(() => {});
-  });
+  const register = () => void navigator.serviceWorker.register("/sw.js").catch(() => {});
+  // Se a página já terminou de carregar, registra agora (o evento "load" não volta a acontecer).
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register, { once: true });
 }
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
@@ -59,6 +62,7 @@ export function useInstallPrompt() {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
       deferred = null;
+      subscribers.forEach((s) => s());
       return outcome === "accepted";
     },
   };
