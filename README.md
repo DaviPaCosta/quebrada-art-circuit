@@ -1,14 +1,16 @@
-# Welcome to your Lovable project
+# Quebrada Art Circuit
+
+Quero criar um Aplicativo estilo Instagram com Posts, Interações , Criação de contas e todas as outras funcionalidades de acordo com o arquivo que eu te enviei. O Tema do projeto sera artes Periféricas como Grafites, Rap, Pichação, Poesias e etc
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/bfbd72b7-1bff-4bb6-8196-b4e9f129b351).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +22,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
