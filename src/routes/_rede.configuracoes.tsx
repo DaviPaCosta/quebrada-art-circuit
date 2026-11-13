@@ -54,7 +54,7 @@ function SettingsPage() {
           </span>
           <UserPen className="size-4 text-muted-foreground" />
         </Link>
-        {me.role === "moderador" && (
+        {me.isModerator && (
           <Link to="/moderacao" className="flex items-center gap-3 p-4 hover:bg-muted">
             <ShieldCheck className="size-5 text-accent" />
             <span className="flex-1 font-semibold">Painel de moderação</span>

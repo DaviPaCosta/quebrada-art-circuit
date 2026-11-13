@@ -53,21 +53,6 @@ describe("regras da rede", () => {
     expect(migrated?.comments.find((c) => c.id === "c1")?.likes).toEqual([]);
     expect(migrated?.users).toEqual(seed.users);
   });
-  it("não permite cadastrar usuário já existente", () => {
-    const r = L.signUp(createSeedState(), { name: "X", username: "mariacores", email: "x@x.com", password: "123456" });
-    expect(r.ok).toBe(false);
-  });
-
-  it("cadastro válido já entra na conta", () => {
-    const r = L.signUp(createSeedState(), { name: "Nova", username: "nova.arte", email: "n@x.com", password: "123456" });
-    expect(r.ok && r.state.sessionUserId).toBeTruthy();
-  });
-
-  it("senha precisa ter pelo menos 6 caracteres", () => {
-    const r = L.signUp(createSeedState(), { name: "A", username: "abc", email: "a@b.com", password: "12345" });
-    expect(r.ok).toBe(false);
-  });
-
   it("curtir de novo desfaz a curtida", () => {
     let s = createSeedState();
     s = L.toggleLike(s, "u5", "p1");
@@ -134,7 +119,7 @@ describe("regras da rede", () => {
       posts: [{ id: "px", authorId: "u1", image: "data:abc", alt: "desc", title: "t", description: "", category: "Grafite", credits: "c", tags: [], likes: [], createdAt: "2026-01-01" }],
     };
     const s = L.migrateState(old, createSeedState())!;
-    expect(s.version).toBe(4);
+    expect(s.version).toBe(5);
     const p = s.posts.find((x) => x.id === "px")!;
     expect(p.media[0]).toMatchObject({ kind: "image", src: "data:abc", alt: "desc" });
     expect(s.posts.some((x) => x.type === "video")).toBe(true);
@@ -180,7 +165,7 @@ describe("regras da rede", () => {
       const seed = createSeedState();
       const old = { ...seed, version: 2, stories: undefined };
       const m = L.migrateState(old, seed)!;
-      expect(m.version).toBe(4);
+      expect(m.version).toBe(5);
       expect(m.stories.length).toBe(seed.stories.length);
     });
   });
@@ -212,5 +197,18 @@ describe("idade e papel", () => {
     expect(L.validateSignUp({ ...ok, acceptedRules: false }, hoje)).toBe("Você precisa aceitar as regras de convivência.");
     expect(L.validateSignUp({ ...ok, birthDate: "" }, hoje)).toBe("Informe sua data de nascimento.");
     expect(L.validateSignUp({ ...ok, birthDate: "2999-01-01" }, hoje)).toBe("Data de nascimento inválida.");
+  });
+});
+
+describe("migração v5", () => {
+  it("v4 → v5 remove senhas e converte papéis", () => {
+    const seed = createSeedState();
+    const old = { ...seed, version: 4, users: seed.users.map((u, i) => ({ ...u, password: "x", role: i === 0 ? "moderador" : "usuario" })) };
+    const s = L.migrateState(old, seed)!;
+    expect(s.version).toBe(5);
+    expect(s.users.every((u) => !("password" in u))).toBe(true);
+    expect(s.users[0]).toMatchObject({ role: "professor", isModerator: true });
+    expect(s.users[1]).toMatchObject({ role: "aluno", isModerator: false });
+    expect(s.posts).toHaveLength(seed.posts.length);
   });
 });

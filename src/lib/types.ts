@@ -12,15 +12,14 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
-export type Role = "usuario" | "moderador";
+export type AccountRole = "aluno" | "professor";
 
 export interface User {
   id: string;
   username: string;
   name: string;
-  email: string;
-  /** Protótipo escolar: senha guardada só no aparelho, sem servidor. */
-  password: string;
+  /** Só preenchido para a própria conta (vem do Supabase Auth). */
+  email?: string | undefined;
   avatar?: string | undefined;
   cover?: string | undefined;
   pinnedPostId?: string | undefined;
@@ -29,7 +28,9 @@ export interface User {
   bairro: string;
   showBairro: boolean;
   styles: Category[];
-  role: Role;
+  role: AccountRole;
+  /** Pode revisar denúncias. Só o admin marca, no painel do Supabase. */
+  isModerator: boolean;
   createdAt: string;
 }
 

@@ -33,7 +33,7 @@ function Moderation() {
   const stats = useAppState((s) => ({ posts: s.posts.filter((p) => !p.removed).length, users: s.users.length }));
   const [filter, setFilter] = useState<ReportStatus>("pendente");
 
-  if (me.role !== "moderador") {
+  if (!me.isModerator) {
     return (
       <div className="px-6 py-20 text-center">
         <ShieldAlert className="mx-auto size-12 text-primary" />

@@ -63,49 +63,6 @@ export function validateSignUp(input: SignUpInput, today: Date): string | null {
   return null;
 }
 
-export function signUp(
-  s: AppState,
-  input: { name: string; username: string; email: string; password: string },
-): Result {
-  const username = normalizeUsername(input.username);
-  const email = input.email.trim().toLowerCase();
-  if (!input.name.trim()) return { ok: false, error: "Informe seu nome de exibição." };
-  if (!isValidUsername(username))
-    return { ok: false, error: "Usuário deve ter 3 a 20 caracteres: letras, números, ponto ou _." };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { ok: false, error: "E-mail inválido." };
-  if (input.password.length < 6)
-    return { ok: false, error: "A senha precisa ter pelo menos 6 caracteres." };
-  if (s.users.some((u) => u.username === username))
-    return { ok: false, error: "Esse nome de usuário já está em uso." };
-  if (s.users.some((u) => u.email.toLowerCase() === email))
-    return { ok: false, error: "Já existe uma conta com esse e-mail." };
-
-  const colors: User["color"][] = ["spray", "violet", "lime", "sand"];
-  const user: User = {
-    id: uid("u"),
-    username,
-    name: input.name.trim(),
-    email,
-    password: input.password,
-    color: colors[s.users.length % colors.length] ?? "spray",
-    bio: "",
-    bairro: "",
-    showBairro: false,
-    styles: [],
-    role: "usuario",
-    createdAt: now(),
-  };
-  return { ok: true, state: { ...s, users: [...s.users, user], sessionUserId: user.id } };
-}
-
-export function signIn(s: AppState, identifier: string, password: string): Result {
-  const id = identifier.trim().toLowerCase().replace(/^@/, "");
-  const user = s.users.find((u) => u.email.toLowerCase() === id || u.username === id);
-  if (!user || user.password !== password)
-    return { ok: false, error: "E-mail/usuário ou senha incorretos." };
-  return { ok: true, state: { ...s, sessionUserId: user.id } };
-}
-
 export function toggleLike(s: AppState, userId: string, postId: string): AppState {
   const post = s.posts.find((p) => p.id === postId);
   if (!post) return s;
@@ -349,6 +306,16 @@ export function migrateState(raw: unknown, seed: AppState): AppState | null {
   if (r.version === 3) {
     r = { ...r, version: 4, comments: (r.comments ?? seed.comments).map((c) => ({ ...c, likes: c.likes ?? [] })) };
   }
+  if (r.version === 4) {
+    // v4 → v5: contas reais no Supabase. Some a senha local; papel vira aluno/professor + moderador.
+    type OldUser = Omit<User, "role" | "isModerator"> & { password?: string; role: string; isModerator?: boolean };
+    const users = ((r.users ?? []) as OldUser[]).map(({ password: _pw, role, isModerator, ...u }) => ({
+      ...u,
+      role: (role === "moderador" || role === "professor" ? "professor" : "aluno") as AccountRole,
+      isModerator: isModerator === true || role === "moderador",
+    }));
+    r = { ...r, version: 5, users };
+  }
   if (r.version !== seed.version) return null;
   return refreshSeedStories({ ...seed, ...(r as AppState) }, seed);
 }
@@ -483,7 +450,7 @@ export function resolveReport(
   action: "remover" | "arquivar",
 ): AppState {
   const mod = s.users.find((u) => u.id === moderatorId);
-  if (mod?.role !== "moderador") return s;
+  if (!mod?.isModerator) return s;
   const r = s.reports.find((x) => x.id === reportId);
   if (!r) return s;
   let next: AppState = {

@@ -81,7 +81,7 @@ function Profile() {
           <h1 className="text-3xl">{user.name}</h1>
           <p className="text-sm text-muted-foreground">
             @{user.username}
-            {user.role === "moderador" && <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">moderação</span>}
+            {user.isModerator && <span className="ml-2 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-accent-foreground">moderação</span>}
           </p>
           {user.bio && <p className="mt-2 max-w-prose whitespace-pre-line text-sm"><MentionText text={user.bio} /></p>}
           {user.showBairro && user.bairro && (

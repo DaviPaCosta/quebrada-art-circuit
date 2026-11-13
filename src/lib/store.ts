@@ -103,21 +103,18 @@ function me() {
 }
 
 export const actions = {
-  signUp(input: { name: string; username: string; email: string; password: string }) {
-    const r = L.signUp(state, input);
-    if (r.ok) set(r.state);
-    return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
+  signUp(_input: { name: string; username: string; email: string; password: string }) {
+    // Substituído pelo Supabase Auth (auth.ts) na próxima etapa do plano.
+    return { ok: false as const, error: "Cadastro em atualização." };
   },
-  signIn(identifier: string, password: string) {
-    const r = L.signIn(state, identifier, password);
-    if (r.ok) set(r.state);
-    return r.ok ? { ok: true as const } : { ok: false as const, error: r.error };
+  signIn(_identifier: string, _password: string) {
+    return { ok: false as const, error: "Login em atualização." };
   },
   signOut() {
     set({ ...state, sessionUserId: null });
   },
   emailExists(email: string) {
-    return state.users.some((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+    return state.users.some((u) => u.email?.toLowerCase() === email.trim().toLowerCase());
   },
   updateProfile(patch: L.ProfilePatch) {
     const id = me();

@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link to="/salvos" aria-label="Salvos" className="rounded-full p-2 hover:bg-muted">
               <Bookmark className="size-5" />
             </Link>
-            {user?.role === "moderador" && (
+            {user?.isModerator && (
               <Link to="/moderacao" aria-label="Painel de moderação" className="rounded-full p-2 text-accent hover:bg-muted">
                 <ShieldCheck className="size-5" />
               </Link>

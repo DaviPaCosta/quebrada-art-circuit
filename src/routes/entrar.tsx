@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout, FieldError } from "@/components/vm/AuthLayout";
 import { actions } from "@/lib/store";
-import { DEMO_LOGIN } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/entrar")({
   head: () => ({
@@ -82,25 +81,6 @@ function Login() {
         </Button>
       </form>
 
-      <div className="mt-8 rounded-lg border border-dashed border-accent/60 bg-card p-4 text-sm">
-        <p className="font-marker text-accent">Conta de demonstração</p>
-        <p className="mt-1 text-muted-foreground">
-          Professora/moderadora: <strong className="text-foreground">{DEMO_LOGIN.email}</strong> · senha{" "}
-          <strong className="text-foreground">{DEMO_LOGIN.password}</strong>
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="mt-3"
-          onClick={() => {
-            setIdentifier(DEMO_LOGIN.email);
-            setPassword(DEMO_LOGIN.password);
-          }}
-        >
-          Preencher dados de demonstração
-        </Button>
-      </div>
     </AuthLayout>
   );
 }
