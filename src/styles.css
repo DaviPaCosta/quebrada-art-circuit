@@ -137,6 +137,8 @@
   }
 
   body {
+    /* Nada pode deixar a página mais larga que a tela (com o zoom travado, ela ficaria "ampliada"). */
+    overflow-x: clip;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);

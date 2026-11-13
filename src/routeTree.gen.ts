@@ -20,6 +20,7 @@ import { Route as RedeAgendaRouteImport } from './routes/_rede.agenda'
 import { Route as RedeAjudaRouteImport } from './routes/_rede.ajuda'
 import { Route as RedeConfiguracoesRouteImport } from './routes/_rede.configuracoes'
 import { Route as RedeCulturaRouteImport } from './routes/_rede.cultura'
+import { Route as RedeDestaquesRouteImport } from './routes/_rede.destaques'
 import { Route as RedeEditarPerfilRouteImport } from './routes/_rede.editar-perfil'
 import { Route as RedeExplorarRouteImport } from './routes/_rede.explorar'
 import { Route as RedeFeedRouteImport } from './routes/_rede.feed'
@@ -85,6 +86,11 @@ const RedeConfiguracoesRoute = RedeConfiguracoesRouteImport.update({
 const RedeCulturaRoute = RedeCulturaRouteImport.update({
   id: '/cultura',
   path: '/cultura',
+  getParentRoute: () => RedeRoute,
+} as any)
+const RedeDestaquesRoute = RedeDestaquesRouteImport.update({
+  id: '/destaques',
+  path: '/destaques',
   getParentRoute: () => RedeRoute,
 } as any)
 const RedeEditarPerfilRoute = RedeEditarPerfilRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/ajuda': typeof RedeAjudaRoute
   '/configuracoes': typeof RedeConfiguracoesRoute
   '/cultura': typeof RedeCulturaRoute
+  '/destaques': typeof RedeDestaquesRoute
   '/editar-perfil': typeof RedeEditarPerfilRoute
   '/explorar': typeof RedeExplorarRoute
   '/feed': typeof RedeFeedRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/ajuda': typeof RedeAjudaRoute
   '/configuracoes': typeof RedeConfiguracoesRoute
   '/cultura': typeof RedeCulturaRoute
+  '/destaques': typeof RedeDestaquesRoute
   '/editar-perfil': typeof RedeEditarPerfilRoute
   '/explorar': typeof RedeExplorarRoute
   '/feed': typeof RedeFeedRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_rede/ajuda': typeof RedeAjudaRoute
   '/_rede/configuracoes': typeof RedeConfiguracoesRoute
   '/_rede/cultura': typeof RedeCulturaRoute
+  '/_rede/destaques': typeof RedeDestaquesRoute
   '/_rede/editar-perfil': typeof RedeEditarPerfilRoute
   '/_rede/explorar': typeof RedeExplorarRoute
   '/_rede/feed': typeof RedeFeedRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/ajuda'
     | '/configuracoes'
     | '/cultura'
+    | '/destaques'
     | '/editar-perfil'
     | '/explorar'
     | '/feed'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/ajuda'
     | '/configuracoes'
     | '/cultura'
+    | '/destaques'
     | '/editar-perfil'
     | '/explorar'
     | '/feed'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/_rede/ajuda'
     | '/_rede/configuracoes'
     | '/_rede/cultura'
+    | '/_rede/destaques'
     | '/_rede/editar-perfil'
     | '/_rede/explorar'
     | '/_rede/feed'
@@ -388,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedeCulturaRouteImport
       parentRoute: typeof RedeRoute
     }
+    '/_rede/destaques': {
+      id: '/_rede/destaques'
+      path: '/destaques'
+      fullPath: '/destaques'
+      preLoaderRoute: typeof RedeDestaquesRouteImport
+      parentRoute: typeof RedeRoute
+    }
     '/_rede/editar-perfil': {
       id: '/_rede/editar-perfil'
       path: '/editar-perfil'
@@ -480,6 +499,7 @@ interface RedeRouteChildren {
   RedeAjudaRoute: typeof RedeAjudaRoute
   RedeConfiguracoesRoute: typeof RedeConfiguracoesRoute
   RedeCulturaRoute: typeof RedeCulturaRoute
+  RedeDestaquesRoute: typeof RedeDestaquesRoute
   RedeEditarPerfilRoute: typeof RedeEditarPerfilRoute
   RedeExplorarRoute: typeof RedeExplorarRoute
   RedeFeedRoute: typeof RedeFeedRoute
@@ -498,6 +518,7 @@ const RedeRouteChildren: RedeRouteChildren = {
   RedeAjudaRoute: RedeAjudaRoute,
   RedeConfiguracoesRoute: RedeConfiguracoesRoute,
   RedeCulturaRoute: RedeCulturaRoute,
+  RedeDestaquesRoute: RedeDestaquesRoute,
   RedeEditarPerfilRoute: RedeEditarPerfilRoute,
   RedeExplorarRoute: RedeExplorarRoute,
   RedeFeedRoute: RedeFeedRoute,

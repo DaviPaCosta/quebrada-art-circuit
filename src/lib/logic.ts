@@ -247,14 +247,19 @@ export const HIGHLIGHT_DAYS = 7;
 export const HIGHLIGHT_MAX = 10;
 
 /** Posts recentes de professores para a faixa "Destaques" do feed. */
-export function highlightPosts(s: Pick<AppState, "posts" | "users" | "blocks">, viewerId: string, nowMs: number): Post[] {
+export function highlightPosts(
+  s: Pick<AppState, "posts" | "users" | "blocks">,
+  viewerId: string,
+  nowMs: number,
+  { days = HIGHLIGHT_DAYS, max = HIGHLIGHT_MAX }: { days?: number; max?: number } = {},
+): Post[] {
   const professors = new Set(s.users.filter((u) => u.role === "professor").map((u) => u.id));
-  const since = nowMs - HIGHLIGHT_DAYS * 24 * 60 * 60 * 1000;
+  const since = nowMs - days * 24 * 60 * 60 * 1000;
   return s.posts
     .filter((p) => !p.removed && professors.has(p.authorId) && !isBlockedBetween(s, viewerId, p.authorId))
     .filter((p) => Date.parse(p.createdAt) >= since)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, HIGHLIGHT_MAX);
+    .slice(0, max);
 }
 
 /* ---------- Vídeos: comprimir, enviar ou recusar ---------- */

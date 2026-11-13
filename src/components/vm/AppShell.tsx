@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, MessageCircle, Plus, Settings, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Bell, Bookmark, BookOpen, CalendarDays, Clapperboard, Compass, Home, MessageCircle, Plus, Settings, ShieldCheck, Star, User as UserIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAppState, useCurrentUser } from "@/lib/store";
@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/mensagens", label: "Mensagens", icon: MessageCircle },
   ] as const;
 
-  const iconLink = "rounded-full p-2 text-foreground transition-colors hover:bg-muted";
+  const iconLink = "rounded-full p-1 text-foreground transition-colors hover:bg-muted min-[400px]:p-1.5 sm:p-2";
 
   return (
     <div className="concrete min-h-screen pb-36">
@@ -34,9 +34,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         Pular para o conteúdo
       </a>
       <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <LogoLink />
-          <div className="ml-auto flex items-center gap-0.5">
+          <div className="ml-auto flex items-center gap-0 sm:gap-0.5">
+            <Link to="/destaques" aria-label="Destaques" className={cn(iconLink, isActive("/destaques") && "text-primary")}>
+              <Star className="size-5" />
+            </Link>
             <Link to="/cultura" aria-label="Cultura" className={cn(iconLink, isActive("/cultura") && "text-primary")}>
               <BookOpen className="size-5" />
             </Link>
@@ -66,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main id="conteudo" className="mx-auto max-w-5xl px-0 sm:px-4">
+      <main id="conteudo" className="mx-auto w-full min-w-0 max-w-5xl px-0 sm:px-4">
         {children}
       </main>
 

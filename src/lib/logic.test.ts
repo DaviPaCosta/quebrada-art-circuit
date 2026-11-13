@@ -207,6 +207,11 @@ describe("destaques e vídeos", () => {
   it("não destaca quem está bloqueado", () => {
     expect(L.highlightPosts({ ...s, blocks: { aluno: ["prof"] } }, "aluno", now)).toEqual([]);
   });
+  it("a página de destaques pode olhar mais dias e mais posts", () => {
+    expect(L.highlightPosts(s, "aluno", now, { days: 30 }).map((p) => p.id)).toEqual(["e", "a", "c"]);
+    const many = { ...s, posts: Array.from({ length: 70 }, (_, i) => post(`p${i}`, "prof", i * 0.1)) };
+    expect(L.highlightPosts(many, "aluno", now, { days: 30, max: 60 })).toHaveLength(60);
+  });
   it("limita a 10", () => {
     const many = { ...s, posts: Array.from({ length: 12 }, (_, i) => post(`p${i}`, "prof", i * 0.1)) };
     expect(L.highlightPosts(many, "aluno", now)).toHaveLength(10);
