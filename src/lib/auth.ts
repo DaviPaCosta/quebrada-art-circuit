@@ -99,6 +99,14 @@ export function signOut(): Promise<AuthResult> {
   return run(() => getSupabase().auth.signOut());
 }
 
+/** Apaga a conta no servidor (Edge Function delete-account); o perfil cai junto. */
+export function deleteAccount(): Promise<AuthResult> {
+  return run(async () => {
+    const { error } = await getSupabase().functions.invoke("delete-account", { method: "POST" });
+    return { error: error ? { message: error.message } : null };
+  });
+}
+
 export async function usernameAvailable(username: string): Promise<boolean> {
   const { data, error } = await getSupabase().rpc("username_available", { name: normalizeUsername(username) });
   return !error && data === true;

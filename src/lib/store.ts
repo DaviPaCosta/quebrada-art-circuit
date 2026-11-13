@@ -191,12 +191,18 @@ export const actions = {
     if (next.ok) set(next.state);
     return { ok: true as const };
   },
-  deleteAccount() {
+  async deleteAccount() {
     const id = me();
-    if (!id) return;
+    if (!id) return { ok: false as const, error: "Entre na sua conta." };
+    if (isSupabaseConfigured()) {
+      const r = await Auth.deleteAccount();
+      if (!r.ok) return r;
+      await Auth.signOut();
+    }
     void deleteMedia(L.storedMediaRefs(state.posts.filter((p) => p.authorId === id)));
     void deleteMedia(L.storyMediaRefs(state.stories.filter((st) => st.authorId === id)));
     set(L.deleteAccount(state, id));
+    return { ok: true as const };
   },
   createPost(data: L.NewPostData) {
     const id = me();

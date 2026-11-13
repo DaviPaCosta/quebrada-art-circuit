@@ -159,11 +159,12 @@ function SettingsPage() {
         open={confirm === "excluir"}
         onOpenChange={(o) => !o && setConfirm(null)}
         title="Excluir conta?"
-        description="Seu perfil, publicações, comentários e curtidas serão apagados deste aparelho. Essa ação não pode ser desfeita."
+        description="Sua conta, seu perfil, publicações, comentários e curtidas serão apagados. Essa ação não pode ser desfeita."
         confirmLabel="Excluir para sempre"
         destructive
-        onConfirm={() => {
-          actions.deleteAccount();
+        onConfirm={async () => {
+          const r = await actions.deleteAccount();
+          if (!r.ok) return void toast.error(r.error);
           toast.success("Conta excluída");
           navigate({ to: "/" });
         }}
