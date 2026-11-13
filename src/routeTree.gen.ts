@@ -31,6 +31,7 @@ import { Route as RedePublicarRouteImport } from './routes/_rede.publicar'
 import { Route as RedeReelsRouteImport } from './routes/_rede.reels'
 import { Route as RedeSalvosRouteImport } from './routes/_rede.salvos'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as RedeConversaIdRouteImport } from './routes/_rede.conversa.$id'
 import { Route as RedePostIdRouteImport } from './routes/_rede.post.$id'
 import { Route as RedeUUsernameRouteImport } from './routes/_rede.u.$username'
 
@@ -143,6 +144,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedeConversaIdRoute = RedeConversaIdRouteImport.update({
+  id: '/conversa/$id',
+  path: '/conversa/$id',
+  getParentRoute: () => RedeRoute,
+} as any)
 const RedePostIdRoute = RedePostIdRouteImport.update({
   id: '/post/$id',
   path: '/post/$id',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/conversa/$id': typeof RedeConversaIdRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
 }
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/reels': typeof RedeReelsRoute
   '/salvos': typeof RedeSalvosRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/conversa/$id': typeof RedeConversaIdRoute
   '/post/$id': typeof RedePostIdRoute
   '/u/$username': typeof RedeUUsernameRoute
 }
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   '/_rede/reels': typeof RedeReelsRoute
   '/_rede/salvos': typeof RedeSalvosRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/_rede/conversa/$id': typeof RedeConversaIdRoute
   '/_rede/post/$id': typeof RedePostIdRoute
   '/_rede/u/$username': typeof RedeUUsernameRoute
 }
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/salvos'
     | '/auth/callback'
+    | '/conversa/$id'
     | '/post/$id'
     | '/u/$username'
   fileRoutesByTo: FileRoutesByTo
@@ -280,6 +290,7 @@ export interface FileRouteTypes {
     | '/reels'
     | '/salvos'
     | '/auth/callback'
+    | '/conversa/$id'
     | '/post/$id'
     | '/u/$username'
   id:
@@ -306,6 +317,7 @@ export interface FileRouteTypes {
     | '/_rede/reels'
     | '/_rede/salvos'
     | '/auth/callback'
+    | '/_rede/conversa/$id'
     | '/_rede/post/$id'
     | '/_rede/u/$username'
   fileRoutesById: FileRoutesById
@@ -477,6 +489,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_rede/conversa/$id': {
+      id: '/_rede/conversa/$id'
+      path: '/conversa/$id'
+      fullPath: '/conversa/$id'
+      preLoaderRoute: typeof RedeConversaIdRouteImport
+      parentRoute: typeof RedeRoute
+    }
     '/_rede/post/$id': {
       id: '/_rede/post/$id'
       path: '/post/$id'
@@ -509,6 +528,7 @@ interface RedeRouteChildren {
   RedePublicarRoute: typeof RedePublicarRoute
   RedeReelsRoute: typeof RedeReelsRoute
   RedeSalvosRoute: typeof RedeSalvosRoute
+  RedeConversaIdRoute: typeof RedeConversaIdRoute
   RedePostIdRoute: typeof RedePostIdRoute
   RedeUUsernameRoute: typeof RedeUUsernameRoute
 }
@@ -528,6 +548,7 @@ const RedeRouteChildren: RedeRouteChildren = {
   RedePublicarRoute: RedePublicarRoute,
   RedeReelsRoute: RedeReelsRoute,
   RedeSalvosRoute: RedeSalvosRoute,
+  RedeConversaIdRoute: RedeConversaIdRoute,
   RedePostIdRoute: RedePostIdRoute,
   RedeUUsernameRoute: RedeUUsernameRoute,
 }

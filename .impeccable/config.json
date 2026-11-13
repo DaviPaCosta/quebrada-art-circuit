@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/lib/news.ts"
+        ],
+        "createdAt": "2026-11-13T11:28:03.673Z",
+        "reason": "Claude: regex que procura <img> dentro do HTML de feeds RSS, não é imagem renderizada"
+      }
+    ]
+  }
+}

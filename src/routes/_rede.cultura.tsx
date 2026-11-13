@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Lightbulb, Quote } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, Lightbulb, Loader2, Newspaper, Quote } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageTitle } from "@/components/vm/AppShell";
 import { UserAvatar } from "@/components/vm/UserAvatar";
 import { CURIOSIDADES, ENTREVISTAS, GLOSSARIO, HISTORIA } from "@/lib/cultura";
+import { fetchNews } from "@/lib/api/news";
+import { timeAgo } from "@/lib/format";
+import { curiosityOfDay, type NewsItem } from "@/lib/news";
 import { useAppState } from "@/lib/store";
 
 export const Route = createFileRoute("/_rede/cultura")({
@@ -30,13 +33,19 @@ function Cultura() {
   return (
     <div className="mx-auto max-w-3xl pb-10">
       <PageTitle kicker="conhecimento é o 5º elemento">Cultura</PageTitle>
-      <Tabs defaultValue="historia" className="px-4 sm:px-0">
-        <TabsList className="scrollbar-none grid h-auto w-full grid-cols-4 bg-card">
+      <CuriosityOfDay />
+      <Tabs defaultValue="noticias" className="px-4 sm:px-0">
+        <TabsList className="scrollbar-none grid h-auto w-full grid-cols-5 bg-card text-xs sm:text-sm">
+          <TabsTrigger value="noticias" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Notícias</TabsTrigger>
           <TabsTrigger value="historia" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">História</TabsTrigger>
           <TabsTrigger value="glossario" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Glossário</TabsTrigger>
           <TabsTrigger value="entrevistas" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Entrevistas</TabsTrigger>
           <TabsTrigger value="curiosidades" className="py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Curiosidades</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="noticias" className="mt-6">
+          <NewsList />
+        </TabsContent>
 
         <TabsContent value="historia" className="mt-6">
           <ol className="relative space-y-8 border-l-2 border-dashed border-primary pl-6">
@@ -96,5 +105,65 @@ function Cultura() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function CuriosityOfDay() {
+  // Calculada só no navegador, para não mudar entre o servidor e o celular.
+  const [text, setText] = useState<string | null>(null);
+  useEffect(() => setText(curiosityOfDay(CURIOSIDADES, new Date())), []);
+  if (!text) return null;
+  return (
+    <section className="mx-4 mb-6 flex gap-3 rounded-lg border-2 border-background bg-accent p-4 text-accent-foreground shadow-[4px_4px_0_0_var(--spray)] sm:mx-0">
+      <Lightbulb className="size-6 shrink-0" aria-hidden />
+      <div>
+        <p className="font-display text-sm uppercase tracking-wide">Curiosidade do dia</p>
+        <p className="mt-1 font-semibold">{text}</p>
+      </div>
+    </section>
+  );
+}
+
+function NewsList() {
+  const [news, setNews] = useState<NewsItem[] | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    fetchNews()
+      .then(setNews)
+      .catch((e: Error) => setError(e.message));
+  }, []);
+
+  if (error) return <p className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">{error}</p>;
+  if (!news) return <Loader2 className="mx-auto size-6 animate-spin text-muted-foreground" aria-label="Carregando notícias" />;
+  if (news.length === 0)
+    return (
+      <div className="rounded-lg border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+        <Newspaper className="mx-auto mb-2 size-8" aria-hidden />
+        As notícias chegam todo dia às 6h. Volte mais tarde!
+      </div>
+    );
+
+  return (
+    <ul className="space-y-3">
+      <li className="text-xs text-muted-foreground">De portais da periferia e do Google News. Toque para ler no site original.</li>
+      {news.map((n) => (
+        <li key={n.url}>
+          <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex gap-3 rounded-lg border border-border bg-card p-3 hover:border-primary">
+            {n.image && (
+              <img src={n.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-20 shrink-0 rounded-md object-cover sm:size-24" />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="line-clamp-3 font-bold leading-snug">{n.title}</span>
+              {n.summary && <span className="mt-1 line-clamp-2 block text-sm text-muted-foreground">{n.summary}</span>}
+              <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                {n.source}
+                {n.publishedAt && <> · {timeAgo(n.publishedAt)}</>}
+                <ExternalLink className="ml-auto size-3.5" aria-hidden />
+              </span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }
