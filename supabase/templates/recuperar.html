@@ -5,7 +5,7 @@
     Recebemos um pedido para trocar a senha da sua conta no Vozes do Muro. Toque no botão para criar uma nova.
   </p>
   <p style="margin: 28px 0;">
-    <a href="{{ .ConfirmationURL }}"
+    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery"
        style="background: #f97316; color: #111; padding: 14px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
       Criar nova senha
     </a>

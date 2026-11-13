@@ -5,7 +5,7 @@
     Falta só um passo: confirme seu e-mail para entrar na rede e começar a mostrar sua arte.
   </p>
   <p style="margin: 28px 0;">
-    <a href="{{ .ConfirmationURL }}"
+    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
        style="background: #f97316; color: #111; padding: 14px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
       Confirmar minha conta
     </a>

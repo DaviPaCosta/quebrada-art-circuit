@@ -90,7 +90,8 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if coalesce(auth.role(), '') <> 'service_role' then
+  -- Só quem chega pela API (papéis authenticated/anon) é travado; o admin no painel e o service_role passam.
+  if current_user in ('authenticated', 'anon') then
     new.id := old.id;
     new.role := old.role;
     new.is_moderator := old.is_moderator;
@@ -142,15 +143,16 @@ revoke all on public.public_profiles from anon, public;
 grant select on public.public_profiles to authenticated;
 
 -- Checagem de @ no cadastro (antes de existir sessão).
-create or replace function public.username_available(name text)
+-- O parâmetro não pode se chamar "name": colidiria com a coluna profiles.name.
+create or replace function public.username_available(p_username text)
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select lower(trim(both from name)) ~ '^[a-z0-9._]{3,20}$'
-     and not exists (select 1 from public.profiles p where p.username = lower(trim(both from name)));
+  select lower(trim(both from p_username)) ~ '^[a-z0-9._]{3,20}$'
+     and not exists (select 1 from public.profiles p where p.username = lower(trim(both from p_username)));
 $$;
 
 revoke all on function public.username_available(text) from public;

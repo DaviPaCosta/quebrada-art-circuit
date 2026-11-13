@@ -81,20 +81,31 @@ function applyOwnProfile(user: User) {
   set({ ...state, users, sessionUserId: user.id });
 }
 
+let loadSeq = 0;
+
+/** Busca sessão e perfil. Só o carregamento mais recente vale; falha passageira não derruba quem já entrou. */
 async function loadSession() {
+  const seq = ++loadSeq;
+  const stale = () => seq !== loadSeq;
   try {
     const { data } = await getSupabase().auth.getSession();
+    if (stale()) return;
     const session = data.session;
     if (!session) {
       if (state.sessionUserId) set({ ...state, sessionUserId: null });
       setAuthStatus("pronto");
       return;
     }
-    const user = Auth.profileToUser(await Auth.fetchOwnProfile(session.user.id), session.user.email ?? "");
+    const row = await Auth.fetchOwnProfile(session.user.id);
+    if (stale()) return;
+    const user = Auth.profileToUser(row, session.user.email ?? "");
     if (!user) return setAuthStatus("erro");
     applyOwnProfile(user);
     setAuthStatus("pronto");
   } catch {
+    if (stale()) return;
+    // Já estava logado com este perfil: mantém o app funcionando e tenta de novo no próximo aviso.
+    if (state.sessionUserId && authStatus === "pronto") return;
     setAuthStatus("erro");
   }
 }
@@ -108,10 +119,16 @@ function startAuth() {
       window.location.assign("/nova-senha");
       return;
     }
+    if (event === "SIGNED_IN" && !state.sessionUserId) setAuthStatus("carregando");
     // Não chamar o Supabase dentro do próprio aviso (pode travar): agenda para logo depois.
     window.setTimeout(() => void loadSession(), 0);
   });
   void loadSession();
+}
+
+/** Situação atual da sessão (fora do React). */
+export function getAuthSnapshot() {
+  return { status: authStatus, userId: state.sessionUserId };
 }
 
 export function useAuthStatus(): AuthStatus {
@@ -172,8 +189,10 @@ function me() {
 
 export const actions = {
   async signOut() {
+    loadSeq++; // descarta carregamentos que ainda estejam a caminho
     if (isSupabaseConfigured()) await Auth.signOut();
     set({ ...state, sessionUserId: null });
+    setAuthStatus("pronto");
   },
   retryAuth() {
     setAuthStatus("carregando");

@@ -52,10 +52,18 @@ async function run(fn: () => Promise<{ error: { message: string } | null }>): Pr
   }
 }
 
-export function signUp(input: SignUpInput): Promise<AuthResult> {
+/** Com confirmação de e-mail ligada, o Supabase não dá erro para e-mail repetido: devolve um usuário sem identidades. */
+export function signUpOutcome(data: { user: { identities?: unknown[] | null } | null } | null): AuthResult {
+  if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0)
+    return { ok: false, error: "Já existe uma conta com esse e-mail." };
+  return { ok: true };
+}
+
+export async function signUp(input: SignUpInput): Promise<AuthResult> {
   const age = ageOn(input.birthDate, new Date());
-  return run(() =>
-    getSupabase().auth.signUp({
+  let outcome: AuthResult = { ok: true };
+  const r = await run(async () => {
+    const { data, error } = await getSupabase().auth.signUp({
       email: input.email.trim().toLowerCase(),
       password: input.password,
       options: {
@@ -67,8 +75,26 @@ export function signUp(input: SignUpInput): Promise<AuthResult> {
           role_choice: roleForAge(age, input.roleChoice),
         },
       },
-    }),
-  );
+    });
+    if (!error) outcome = signUpOutcome(data);
+    return { error };
+  });
+  return r.ok ? outcome : r;
+}
+
+export type OtpParams = { token_hash: string; type: "email" | "recovery" };
+
+/** Token do link do e-mail (funciona em qualquer aparelho, diferente do código PKCE). */
+export function otpFromUrl(search: string): OtpParams | null {
+  const p = new URLSearchParams(search);
+  const token_hash = p.get("token_hash");
+  const type = p.get("type");
+  if (!token_hash || (type !== "email" && type !== "recovery")) return null;
+  return { token_hash, type };
+}
+
+export function verifyEmailLink(otp: OtpParams): Promise<AuthResult> {
+  return run(() => getSupabase().auth.verifyOtp(otp));
 }
 
 export function signIn(email: string, password: string): Promise<AuthResult> {
@@ -95,8 +121,11 @@ export function updatePassword(password: string): Promise<AuthResult> {
   return run(() => getSupabase().auth.updateUser({ password }));
 }
 
-export function signOut(): Promise<AuthResult> {
-  return run(() => getSupabase().auth.signOut());
+/** Sai em todos os aparelhos; sem internet, ao menos apaga a sessão deste aparelho. */
+export async function signOut(): Promise<AuthResult> {
+  const r = await run(() => getSupabase().auth.signOut());
+  if (!r.ok) await run(() => getSupabase().auth.signOut({ scope: "local" }));
+  return r;
 }
 
 /** Apaga a conta no servidor (Edge Function delete-account); o perfil cai junto. */
@@ -108,7 +137,7 @@ export function deleteAccount(): Promise<AuthResult> {
 }
 
 export async function usernameAvailable(username: string): Promise<boolean> {
-  const { data, error } = await getSupabase().rpc("username_available", { name: normalizeUsername(username) });
+  const { data, error } = await getSupabase().rpc("username_available", { p_username: normalizeUsername(username) });
   return !error && data === true;
 }
 

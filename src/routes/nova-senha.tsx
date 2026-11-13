@@ -28,9 +28,15 @@ function NewPassword() {
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) setHasSession(true);
     });
-    void supabase.auth.getSession().then(({ data: d }) => {
-      if (d.session) setHasSession(true);
-    });
+    const otp = Auth.otpFromUrl(window.location.search);
+    if (otp?.type === "recovery") {
+      // Link com token: funciona mesmo abrindo o e-mail em outro aparelho.
+      void Auth.verifyEmailLink(otp).then((r) => setHasSession(r.ok));
+    } else {
+      void supabase.auth.getSession().then(({ data: d }) => {
+        if (d.session) setHasSession(true);
+      });
+    }
     const t = window.setTimeout(() => setHasSession((v) => v ?? false), 5000);
     return () => {
       data.subscription.unsubscribe();

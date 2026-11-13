@@ -20,7 +20,10 @@ Passo a passo para o dono do projeto. **Nunca cole senhas ou chaves no chat.**
 ## 3. Criar a tabela de perfis
 1. Painel → **SQL Editor** → **New query**.
 2. Cole todo o conteúdo de `supabase/migrations/20261112000000_profiles.sql` e clique em **Run**.
-3. Em outra query, cole `supabase/tests/profiles_check.sql` e rode: todas as linhas devem vir com `ok = true`.
+3. Em outra query, cole `supabase/tests/profiles_check.sql` e rode: todas as linhas devem vir com `ok = true`
+   (o arquivo cria um usuário de teste e desfaz tudo no fim).
+4. Contas criadas pelo botão **Add user** do painel falham (falta a data de nascimento): crie contas sempre pela
+   tela de cadastro do app.
 
 ## 4. Publicar a função de excluir conta
 Painel → **Edge Functions** → **Deploy a new function** → nome `delete-account` → cole o conteúdo de

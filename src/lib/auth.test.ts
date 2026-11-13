@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { profileToUser, type ProfileRow } from "./auth";
+import { otpFromUrl, profileToUser, signUpOutcome, type ProfileRow } from "./auth";
 
 describe("perfil do banco", () => {
   it("converte a linha do banco em usuário do app", () => {
@@ -8,5 +8,18 @@ describe("perfil do banco", () => {
   });
   it("sem linha no banco não há usuário", () => {
     expect(profileToUser(null, "a@b.co")).toBeNull();
+  });
+});
+
+describe("cadastro e links do e-mail", () => {
+  it("e-mail já cadastrado não finge que deu certo", () => {
+    expect(signUpOutcome({ user: { identities: [] } })).toEqual({ ok: false, error: "Já existe uma conta com esse e-mail." });
+    expect(signUpOutcome({ user: { identities: [{ id: "1" }] } })).toEqual({ ok: true });
+  });
+  it("lê o token do link do e-mail", () => {
+    expect(otpFromUrl("?token_hash=abc&type=recovery")).toEqual({ token_hash: "abc", type: "recovery" });
+    expect(otpFromUrl("?token_hash=abc&type=email")).toEqual({ token_hash: "abc", type: "email" });
+    expect(otpFromUrl("?token_hash=abc&type=hack")).toBeNull();
+    expect(otpFromUrl("")).toBeNull();
   });
 });
