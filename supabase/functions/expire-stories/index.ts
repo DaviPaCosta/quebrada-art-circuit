@@ -16,8 +16,10 @@ Deno.serve(async (req) => {
 
   // O segredo é conferido direto no Vault (nome "cron_secret").
   const given = req.headers.get("x-cron-secret") ?? "";
-  const { data: ok } = await admin.rpc("check_cron_secret", { p_secret: given });
-  if (!given || ok !== true) return json({ error: "não autorizado" }, 401);
+  if (!given) return json({ error: "não autorizado", motivo: "sem cabeçalho x-cron-secret" }, 401);
+  const { data: ok, error: rpcError } = await admin.rpc("check_cron_secret", { p_secret: given });
+  if (rpcError) return json({ error: "falha ao conferir o segredo", motivo: rpcError.message }, 500);
+  if (ok !== true) return json({ error: "não autorizado", motivo: "segredo diferente do Vault" }, 401);
   const { data, error } = await admin
     .from("stories")
     .select("id, src, poster")
