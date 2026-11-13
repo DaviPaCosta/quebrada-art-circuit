@@ -1,14 +1,43 @@
 <!-- Assunto: Confirme sua conta no Vozes do Muro -->
-<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
-  <h1 style="font-size: 24px; margin: 0 0 16px;">Bem-vinde ao Vozes do Muro!</h1>
-  <p style="font-size: 16px; line-height: 1.5;">
-    Falta só um passo: confirme seu e-mail para entrar na rede e começar a mostrar sua arte.
-  </p>
-  <p style="margin: 28px 0;">
-    <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
-       style="background: #f97316; color: #111; padding: 14px 24px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block;">
-      Confirmar minha conta
-    </a>
-  </p>
-  <p style="font-size: 13px; color: #666;">Se não foi você, ignore este e-mail.</p>
-</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#1c1b1a;padding:32px 12px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#262524;border-radius:16px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+        <tr><td style="height:6px;background:#F97316;background-image:linear-gradient(90deg,#F97316,#7C3AED,#A3E635);"></td></tr>
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <div style="font-size:28px;font-weight:900;letter-spacing:1px;color:#F5F1E8;">
+              VOZES <span style="font-size:14px;color:#A3E635;font-style:italic;">do</span> <span style="color:#F97316;">MURO</span>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 32px 0;color:#F5F1E8;">
+            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;text-transform:uppercase;">Bem-vinde ao muro!</h1>
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#d6d1c6;">
+              Sua conta está quase pronta. Confirme seu e-mail para mostrar sua arte, seguir artistas e trocar ideia com a quebrada toda.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px;">
+            <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email"
+               style="display:inline-block;background:#F97316;color:#1c1b1a;font-size:16px;font-weight:900;text-transform:uppercase;letter-spacing:1px;text-decoration:none;padding:16px 28px;border-radius:10px;border-bottom:4px solid #A3E635;">
+              Confirmar minha conta
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 28px;font-size:13px;line-height:1.5;color:#9a958b;">
+            O link vale por 24 horas. Se não foi você que criou a conta, é só ignorar este e-mail.
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 32px;background:#1f1e1d;font-size:12px;color:#a39e94;">
+            Vozes do Muro · rede de alunos e professores · grafite, rap, poesia e cultura de rua
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
